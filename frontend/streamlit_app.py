@@ -21,6 +21,9 @@ from app.agents.researcher import ResearchTopic, research_topic
 # Load environment variables
 load_dotenv()
 
+# Define API base URL
+API_BASE_URL = "http://localhost:8000"  # FastAPI default port
+
 # Custom CSS for styling
 st.markdown("""
 <style>
@@ -224,27 +227,22 @@ if generate_clicked:
     if topic:
         with st.spinner("🔍 Researching and generating content..."):
             try:
-                # Prepare the request data
-                keywords_list = [k.strip() for k in keywords.split(",") if k.strip()]
-                
-                # Make API request to the backend
-                response = requests.post(
-                    f"{API_BASE_URL}/generate",
-                    json={
-                        "topic": topic,
-                        "keywords": keywords_list,
-                        "depth": depth
-                    }
+                # Convert inputs to ResearchTopic
+                research_request = ResearchTopic(
+                    title=topic,
+                    keywords=[k.strip() for k in keywords.split(",") if k.strip()],
+                    depth=depth
                 )
                 
-                # Check for errors
-                if response.status_code != 200:
-                    error_detail = response.json().get("detail", "Unknown error")
-                    st.error(f"Error: {error_detail}")
-                    st.stop()
+                # Use the researcher directly instead of making API calls
+                result = research_topic(research_request)
                 
-                # Get the result
-                result = response.json()
+                # Check for errors
+                if "error" in result:
+                    st.error(f"Error: {result['error']}")
+                    if "OpenAI API key not set" in result["error"]:
+                        st.info("Please add your OpenAI API key to the .env file in your project root")
+                    st.stop()
                 
                 # Display results in a card container
                 st.markdown('<div class="card-container">', unsafe_allow_html=True)

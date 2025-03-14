@@ -123,6 +123,19 @@
         ]
       },
       "preview": "```markdown\n# Understanding Inheritance in Python\n\n## 1. Introduction\nWelcome to the world of Python! Python is a popular programming language known for its simplicity and versatility. It\u2019s widely use..."
+    },
+    {
+      "id": "cc5bb4e6-b430-4b3d-a046-d6ebd95a5eb1",
+      "title": "python",
+      "created_at": "2025-03-13T23:10:28.491615",
+      "metadata": {
+        "topic": "python",
+        "depth": "intermediate",
+        "keywords": [
+          "else"
+        ]
+      },
+      "preview": "```markdown\n# Understanding the `else` Statement in Python\n\n## 1. Introduction\n\nConditional logic forms the backbone of programming, guiding computers in decision-making and managing various scenarios..."
     }
   ]
 }

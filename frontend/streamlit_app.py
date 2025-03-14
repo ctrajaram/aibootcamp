@@ -13,6 +13,7 @@ import json
 import sys
 import os
 from dotenv import load_dotenv
+from pydantic import ValidationError
 
 # Add the app directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -201,10 +202,15 @@ st.markdown('<div class="card-container">', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 
 with col1:
-    topic = st.text_input("📌 Enter your technical topic:", placeholder="e.g., Docker containerization")
+    topic = st.text_input("📌 Enter your technical topic:", 
+                         placeholder="e.g., Docker containerization",
+                         help="Required: The main topic for your blog post")
 
 with col2:
-    keywords = st.text_input("🔑 Enter keywords (comma-separated):", placeholder="e.g., containers, virtualization, microservices")
+    keywords = st.text_input("🔑 Enter keywords (optional, comma-separated):", 
+                            placeholder="e.g., containers, virtualization, microservices",
+                            help="Optional: Specific aspects of the topic to focus on")
+    st.caption("Leave empty to generate content based on the topic alone")
 
 # Depth selector with better styling
 st.markdown("### 📊 Content Depth")
@@ -225,17 +231,35 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 if generate_clicked:
     if topic:
+        # Create a progress bar
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        def update_progress(progress_value, status_message):
+            """Update the progress bar and status message."""
+            progress_bar.progress(progress_value)
+            status_text.text(status_message)
+        
         with st.spinner("🔍 Researching and generating content..."):
             try:
                 # Convert inputs to ResearchTopic
-                research_request = ResearchTopic(
-                    title=topic,
-                    keywords=[k.strip() for k in keywords.split(",") if k.strip()],
-                    depth=depth
-                )
+                try:
+                    # First try to create the ResearchTopic object
+                    research_request = ResearchTopic(
+                        title=topic,
+                        keywords=[k.strip() for k in keywords.split(",") if k.strip()],
+                        depth=depth
+                    )
+                except ValidationError as ve:
+                    # Handle Pydantic validation errors specifically
+                    st.error(f"Validation Error: {str(ve)}")
+                    st.stop()
                 
-                # Use the researcher directly instead of making API calls
-                result = research_topic(research_request)
+                # Update initial status
+                update_progress(0.1, "Starting research process...")
+                
+                # If validation passes, proceed with research
+                result = research_topic(research_request, progress_callback=update_progress)
                 
                 # Check for errors
                 if "error" in result:
@@ -243,6 +267,10 @@ if generate_clicked:
                     if "OpenAI API key not set" in result["error"]:
                         st.info("Please add your OpenAI API key to the .env file in your project root")
                     st.stop()
+                
+                # Clear the progress indicators
+                progress_bar.empty()
+                status_text.empty()
                 
                 # Display results in a card container
                 st.markdown('<div class="card-container">', unsafe_allow_html=True)
@@ -292,7 +320,10 @@ if generate_clicked:
                 st.markdown('</div>', unsafe_allow_html=True)  # Close card container
                 
             except Exception as e:
+                # This is for other unexpected errors
                 st.error(f"Error generating content: {str(e)}")
-                st.info("If this is an API key error, please check that your OpenAI API key is valid and has sufficient credits")
+                # Only show API key message if it's likely an API issue
+                if "api" in str(e).lower() or "key" in str(e).lower() or "openai" in str(e).lower():
+                    st.info("This appears to be an API key error. Please check that your OpenAI API key is valid and has sufficient credits.")
     else:
         st.error("Please provide a topic") 

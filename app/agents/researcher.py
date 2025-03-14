@@ -12,6 +12,11 @@ import hashlib
 import time
 from pathlib import Path
 
+# Remove authentication imports
+# import streamlit_authenticator as stauth
+# import yaml
+# from yaml.loader import SafeLoader
+
 # Import our new crew setup
 from app.agents.crew_setup import create_blog_crew
 
@@ -369,3 +374,8 @@ def research_topic(topic: ResearchTopic, progress_callback=None, use_cache=True)
         if progress_callback:
             progress_callback(0, f"Error: {error_message}")
         return {"error": error_message} 
+
+# Simulate authenticated state for sidebar use in the app
+name = "Administrator"
+authentication_status = True
+username = "admin" 

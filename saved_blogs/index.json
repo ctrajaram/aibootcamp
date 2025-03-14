@@ -136,6 +136,41 @@
         ]
       },
       "preview": "```markdown\n# Understanding the `else` Statement in Python\n\n## 1. Introduction\n\nConditional logic forms the backbone of programming, guiding computers in decision-making and managing various scenarios..."
+    },
+    {
+      "id": "4f1536f2-df97-43a3-bdf2-77d69af30ab1",
+      "title": "python",
+      "created_at": "2025-03-14T13:03:56.476028",
+      "metadata": {
+        "topic": "python",
+        "depth": "beginner",
+        "keywords": []
+      },
+      "preview": "```markdown\n# A Beginner's Guide to Python\n\n## I. Introduction\n\nWelcome to the world of Python! If you're just starting out in programming or looking to expand your skill set, Python is a fantastic ch..."
+    },
+    {
+      "id": "5c671d24-d131-45cf-ba16-07a81bfcb6b1",
+      "title": "Kubernetes",
+      "created_at": "2025-03-14T14:13:11.622631",
+      "metadata": {
+        "topic": "Kubernetes",
+        "depth": "intermediate",
+        "keywords": []
+      },
+      "preview": "```markdown\n# A General Overview of Kubernetes\n\n## I. Introduction\n\nIn today's fast-paced software development landscape, containerization has emerged as a transformative technology. It allows develop..."
+    },
+    {
+      "id": "e26abbce-bfba-4929-990e-00932d2e688c",
+      "title": "Kubernetes",
+      "created_at": "2025-03-14T14:15:38.658716",
+      "metadata": {
+        "topic": "Kubernetes",
+        "depth": "beginner",
+        "keywords": [
+          "helm"
+        ]
+      },
+      "preview": "```markdown\n# Getting Started with Kubernetes and Helm\n\n## Introduction\n\nWelcome to the world of container orchestration! As the demand for scalable and efficient application deployment grows, tools l..."
     }
   ]
 }

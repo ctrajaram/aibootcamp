@@ -7,11 +7,21 @@ st.set_page_config(
     layout="wide"
 )
 
+# Add authentication
+import sys
+import os
+# Add the app directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.auth import require_auth
+# Import ResearchTopic from researcher module
+from app.agents.researcher import ResearchTopic, research_topic
+
+# Require authentication
+name, username = require_auth()
+
 import requests
 from typing import List, Dict
 import json
-import sys
-import os
 import datetime
 from dotenv import load_dotenv
 from pydantic import ValidationError
@@ -21,10 +31,6 @@ import uuid
 from pathlib import Path
 import time
 import re
-
-# Add the app directory to Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app.agents.researcher import ResearchTopic, research_topic
 
 # Load environment variables
 load_dotenv()
@@ -799,18 +805,6 @@ if generate_clicked:
                 
                 # Save the blog to the local database
                 blog_id = save_blog(result['title'], edited_content, result['metadata'])
-                
-                # Replace the success message with a more subtle indicator
-                st.markdown(
-                    f"""
-                    <div style="text-align: right; font-size: 0.8rem; color: #4CAF50; margin-top: 10px;">
-                        <span style="background-color: #E8F5E9; padding: 4px 8px; border-radius: 4px;">
-                            ✓ Blog saved (ID: {blog_id[:8]}...)
-                        </span>
-                    </div>
-                    """, 
-                    unsafe_allow_html=True
-                )
                 
             except Exception as e:
                 # This is for other unexpected errors - keep this as it's important for debugging

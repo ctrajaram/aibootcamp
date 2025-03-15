@@ -510,8 +510,23 @@ st.markdown("""
         to { opacity: 1; transform: translateY(0); }
     }
     
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    @keyframes shimmer {
+        0% { background-position: -1000px 0; }
+        100% { background-position: 1000px 0; }
+    }
+    
     .animate-fade-in {
         animation: fadeIn 0.5s ease-out;
+    }
+    
+    .animate-pulse {
+        animation: pulse 2s infinite ease-in-out;
     }
     
     /* Add animation to main elements */
@@ -519,81 +534,213 @@ st.markdown("""
         animation: fadeIn 0.5s ease-out;
     }
     
-    /* Column layout improvements */
-    .row-widget.stHorizontal {
-        gap: var(--spacing-3);
-        margin: var(--spacing-3) 0;
+    /* Tab transition animations */
+    .stTabs [data-baseweb="tab-panel"] {
+        animation: fadeIn 0.3s ease-out;
     }
     
-    /* Improve spacing for form elements */
-    .stForm > div {
-        padding: var(--spacing-3) !important;
-        background-color: rgba(248, 249, 250, 0.6);
-        border-radius: var(--radius);
-        margin-bottom: var(--spacing-4) !important;
-        border: 1px solid var(--border-color);
-    }
-    
-    /* Sidebar styling */
-    [data-testid="stSidebar"] {
+    /* Loading animation */
+    .loading-animation {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 20px 0;
+        padding: 20px;
         background-color: var(--bg-light);
-        padding: var(--spacing-3);
-        border-right: 1px solid var(--border-color);
-    }
-    
-    [data-testid="stSidebar"] > div {
-        padding: var(--spacing-3);
-    }
-    
-    [data-testid="stSidebar"] h1 {
-        color: var(--primary);
-        font-size: 1.5rem;
-        margin-bottom: var(--spacing-3);
-        font-weight: 700;
-        border-bottom: 2px solid var(--border-color);
-        padding-bottom: var(--spacing-2);
-    }
-    
-    /* Improve spacing for markdown elements */
-    [data-testid="stMarkdownContainer"] > p {
-        margin: var(--spacing-2) 0;
-    }
-    
-    /* Add visual separation between settings and content areas */
-    .main .block-container {
-        padding-left: var(--spacing-4) !important;
-    }
-    
-    /* Improve spacing for form elements */
-    .stForm > div > div {
-        margin-bottom: var(--spacing-3);
-    }
-    
-    /* Enhance selectbox styling */
-    .stSelectbox > div > div > div {
-        background-color: white;
-        border-radius: 8px;
-        border: 1px solid var(--border-color);
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-    }
-    
-    .stSelectbox > div > div > div:hover {
-        border-color: var(--primary-dark);
-        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
-    }
-    
-    /* Enhance slider styling */
-    .stSlider > div {
-        padding-top: var(--spacing-2);
-        padding-bottom: var(--spacing-2);
-    }
-    
-    /* Improve checkbox styling */
-    .stCheckbox > div {
-        padding: var(--spacing-2);
-        background-color: rgba(248, 249, 250, 0.4);
         border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .loading-animation .dot {
+        width: 12px;
+        height: 12px;
+        margin: 0 5px;
+        background-color: var(--primary);
+        border-radius: 50%;
+        display: inline-block;
+        animation: dot-pulse 1.5s infinite ease-in-out;
+    }
+    
+    .loading-animation .dot:nth-child(1) {
+        animation-delay: 0s;
+    }
+    
+    .loading-animation .dot:nth-child(2) {
+        animation-delay: 0.3s;
+        background-color: var(--accent);
+    }
+    
+    .loading-animation .dot:nth-child(3) {
+        animation-delay: 0.6s;
+        background-color: var(--success);
+    }
+    
+    @keyframes dot-pulse {
+        0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+        40% { transform: scale(1); opacity: 1; }
+    }
+    
+    /* Shimmer effect for loading states */
+    .shimmer {
+        background: linear-gradient(90deg, 
+            rgba(255,255,255,0) 0%, 
+            rgba(255,255,255,0.6) 50%, 
+            rgba(255,255,255,0) 100%);
+        background-size: 1000px 100%;
+        animation: shimmer 2s infinite linear;
+    }
+    
+    /* Progress indicator styling */
+    .progress-container {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: var(--bg-light);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+    }
+    
+    .progress-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    .progress-step {
+        flex: 1;
+        text-align: center;
+        position: relative;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+    
+    .progress-step.active {
+        color: var(--primary);
+        font-weight: 600;
+    }
+    
+    .progress-step.completed {
+        color: var(--success);
+    }
+    
+    .progress-step:before {
+        content: "";
+        width: 20px;
+        height: 20px;
+        background-color: var(--bg-light);
+        border: 2px solid var(--border-color);
+        border-radius: 50%;
+        display: block;
+        margin: 0 auto 5px;
+    }
+    
+    .progress-step.active:before {
+        background-color: var(--primary);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
+    }
+    
+    .progress-step.completed:before {
+        background-color: var(--success);
+        border-color: var(--success);
+    }
+    
+    /* Responsive design improvements */
+    @media (max-width: 992px) {
+        .main-header {
+            font-size: 2.2rem !important;
+        }
+        
+        .description {
+            font-size: 1rem !important;
+            max-width: 100% !important;
+        }
+        
+        .stButton button {
+            width: 180px !important;
+        }
+        
+        button[key="generate_content_button"] {
+            width: 200px !important;
+        }
+        
+        .card-container {
+            padding: var(--spacing-3) !important;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .main-header {
+            font-size: 1.8rem !important;
+            padding: var(--spacing-2) !important;
+        }
+        
+        .description {
+            font-size: 0.9rem !important;
+            padding: var(--spacing-2) !important;
+        }
+        
+        [data-testid="stMarkdownContainer"] h3 {
+            font-size: 1.2rem !important;
+        }
+        
+        .stButton button {
+            width: 100% !important;
+            max-width: 160px !important;
+        }
+        
+        button[key="generate_content_button"] {
+            width: 180px !important;
+        }
+        
+        .stDownloadButton button {
+            width: 100% !important;
+            max-width: 160px !important;
+        }
+        
+        /* Adjust column layout for mobile */
+        [data-testid="column"] {
+            width: 100% !important;
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
+        
+        /* Stack columns on mobile */
+        [data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+        }
+        
+        /* Adjust tab padding */
+        .stTabs [data-baseweb="tab"] {
+            padding: var(--spacing-1) var(--spacing-2) !important;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .main-header {
+            font-size: 1.5rem !important;
+        }
+        
+        .description {
+            font-size: 0.85rem !important;
+        }
+        
+        .complexity-indicator {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Make sidebar full width on very small screens */
+        [data-testid="stSidebar"] {
+            width: 100% !important;
+            min-width: 100% !important;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -779,10 +926,109 @@ with main_tab:
             # Create a simple progress bar without status text
             progress_bar = st.progress(0)
             
+            # Add a custom loading animation
+            loading_container = st.empty()
+            loading_container.markdown("""
+            <div class="loading-animation">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div style="margin-left: 10px; font-weight: 500;">Generating your content...</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Add a progress steps indicator
+            progress_steps_container = st.empty()
+            progress_steps_container.markdown("""
+            <div class="progress-container">
+                <span class="progress-label">Content Generation Progress</span>
+                <div class="progress-steps">
+                    <div class="progress-step active">Research</div>
+                    <div class="progress-step">Outline</div>
+                    <div class="progress-step">Draft</div>
+                    <div class="progress-step">Finalize</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
             def update_progress(progress_value, status_message):
-                """Update the progress bar only."""
+                """Update the progress bar and progress steps."""
                 progress_bar.progress(progress_value)
-                # No status text or agent indicators
+                
+                # Increase delay to 1 second to make transitions more visible
+                time.sleep(1.0)
+                
+                # Update progress steps based on progress value with clearer thresholds
+                if progress_value <= 0.25:
+                    step_html = """
+                    <div class="progress-container">
+                        <span class="progress-label">Content Generation Progress</span>
+                        <div class="progress-steps">
+                            <div class="progress-step active">Research</div>
+                            <div class="progress-step">Outline</div>
+                            <div class="progress-step">Draft</div>
+                            <div class="progress-step">Finalize</div>
+                        </div>
+                    </div>
+                    """
+                elif progress_value <= 0.5:
+                    step_html = """
+                    <div class="progress-container">
+                        <span class="progress-label">Content Generation Progress</span>
+                        <div class="progress-steps">
+                            <div class="progress-step completed">Research</div>
+                            <div class="progress-step active">Outline</div>
+                            <div class="progress-step">Draft</div>
+                            <div class="progress-step">Finalize</div>
+                        </div>
+                    </div>
+                    """
+                elif progress_value <= 0.75:
+                    step_html = """
+                    <div class="progress-container">
+                        <span class="progress-label">Content Generation Progress</span>
+                        <div class="progress-steps">
+                            <div class="progress-step completed">Research</div>
+                            <div class="progress-step completed">Outline</div>
+                            <div class="progress-step active">Draft</div>
+                            <div class="progress-step">Finalize</div>
+                        </div>
+                    </div>
+                    """
+                else:
+                    step_html = """
+                    <div class="progress-container">
+                        <span class="progress-label">Content Generation Progress</span>
+                        <div class="progress-steps">
+                            <div class="progress-step completed">Research</div>
+                            <div class="progress-step completed">Outline</div>
+                            <div class="progress-step completed">Draft</div>
+                            <div class="progress-step active">Finalize</div>
+                        </div>
+                    </div>
+                    """
+                
+                # Update the progress steps container
+                progress_steps_container.markdown(step_html, unsafe_allow_html=True)
+                
+                # Also update the loading message based on the current step
+                if progress_value <= 0.25:
+                    loading_message = "Researching your topic..."
+                elif progress_value <= 0.5:
+                    loading_message = "Creating content outline..."
+                elif progress_value <= 0.75:
+                    loading_message = "Drafting your blog post..."
+                else:
+                    loading_message = "Finalizing and polishing content..."
+                
+                loading_container.markdown(f"""
+                <div class="loading-animation">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div style="margin-left: 10px; font-weight: 500;">{loading_message}</div>
+                </div>
+                """, unsafe_allow_html=True)
             
             # Use a minimal spinner
             with st.spinner("Generating content..."):
@@ -797,26 +1043,35 @@ with main_tab:
                         )
                     except ValidationError as ve:
                         # Handle Pydantic validation errors specifically
+                        loading_container.empty()
+                        progress_steps_container.empty()
                         st.error(f"Validation Error: {str(ve)}")
                         st.stop()
                     
-                    # Define a simplified progress callback that only updates the progress bar
-                    def simplified_progress_callback(progress_value, status_message):
-                        # Just update the progress bar, ignore status messages
-                        progress_bar.progress(progress_value)
-                    
-                    # Call research_topic with our simplified callback
-                    result = research_topic(research_request, progress_callback=simplified_progress_callback, use_cache=use_cache)
+                    # Call research_topic with our updated callback
+                    result = research_topic(research_request, progress_callback=update_progress, use_cache=use_cache)
                     
                     # Check for errors
                     if "error" in result:
+                        loading_container.empty()
+                        progress_steps_container.empty()
                         st.error(f"Error: {result['error']}")
                         if "OpenAI API key not set" in result["error"]:
                             st.info("Please add your OpenAI API key to the .env file in your project root")
                         st.stop()
                     
-                    # Clear the progress indicator
+                    # Clear the progress indicators
                     progress_bar.empty()
+                    loading_container.empty()
+                    progress_steps_container.empty()
+                    
+                    # Show completion animation
+                    st.markdown("""
+                    <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0; padding: 15px; background-color: #d1e7dd; border-radius: 8px; animation: fadeIn 0.5s ease-out;">
+                        <div style="font-size: 24px; margin-right: 10px;">✅</div>
+                        <div style="font-weight: 600; color: #0f5132;">Content successfully generated!</div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     # Store the generated content in session state for access in the chat tab
                     if "current_blog_title" not in st.session_state:

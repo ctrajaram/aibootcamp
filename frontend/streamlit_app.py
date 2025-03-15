@@ -420,6 +420,13 @@ with st.sidebar:
             padding-bottom: 20px;
             border-bottom: 1px solid #e0e0e0;
         }
+        
+        /* Style the logout button specifically */
+        .logout-section {
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
         </style>
         <div class="logout-button">
         </div>
@@ -427,7 +434,16 @@ with st.sidebar:
         
         # Display user info and logout button
         st.markdown(f"**Logged in as:** {name}")
-        logout()  # This calls the logout function from auth.py
+        
+        # Create a dedicated logout button with a unique key
+        if st.button("Sign Out", key="sidebar_logout_button"):
+            # Call the logout function
+            logout()
+            # Clear all session state
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            # Force a rerun to redirect to login page
+            st.rerun()
     
     # Use session state to track button clicks without direct rerun in callbacks
     if "dark_mode_clicked" not in st.session_state:

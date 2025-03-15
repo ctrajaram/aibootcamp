@@ -93,21 +93,69 @@ def save_blog(title: str, content: str, metadata: Dict) -> str:
 # Custom CSS for styling
 st.markdown("""
 <style>
-    /* Modern UI styling with improved aesthetics */
+    /* Import fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
-    * {
-        font-family: 'Inter', sans-serif;
+    /* Color palette - Bootstrap inspired with custom accent */
+    :root {
+        --primary: #0d6efd;       /* Bootstrap primary blue */
+        --primary-dark: #0b5ed7;  /* Darker shade for hover states */
+        --secondary: #6c757d;     /* Bootstrap secondary gray */
+        --success: #198754;       /* Bootstrap success green */
+        --info: #0dcaf0;          /* Bootstrap info cyan */
+        --warning: #ffc107;       /* Bootstrap warning yellow */
+        --danger: #dc3545;        /* Bootstrap danger red */
+        --light: #f8f9fa;         /* Bootstrap light gray */
+        --dark: #212529;          /* Bootstrap dark gray */
+        --accent: #7952b3;        /* Custom purple accent */
+        --accent-light: #9461e3;  /* Lighter accent for hover */
+        --border-color: #dee2e6;  /* Bootstrap border color */
+        --text-primary: #212529;  /* Main text color */
+        --text-secondary: #6c757d; /* Secondary text color */
+        --text-muted: #adb5bd;    /* Muted text color */
+        --bg-light: #f8f9fa;      /* Light background */
+        --bg-white: #ffffff;      /* White background */
+        --shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075); /* Small shadow */
+        --shadow: 0 .5rem 1rem rgba(0,0,0,.15);         /* Medium shadow */
+        --shadow-lg: 0 1rem 3rem rgba(0,0,0,.175);      /* Large shadow */
+        --radius: 0.375rem;       /* Border radius */
+        --radius-sm: 0.25rem;     /* Small border radius */
+        --radius-lg: 0.5rem;      /* Large border radius */
+        --spacing-1: 0.25rem;     /* 4px */
+        --spacing-2: 0.5rem;      /* 8px */
+        --spacing-3: 1rem;        /* 16px */
+        --spacing-4: 1.5rem;      /* 24px */
+        --spacing-5: 3rem;        /* 48px */
     }
     
-    /* Modern main header */
+    /* Base styles */
+    * {
+        font-family: 'Inter', sans-serif;
+        box-sizing: border-box;
+    }
+    
+    /* Improved spacing for the entire app */
+    .block-container {
+        padding-top: var(--spacing-4) !important;
+        padding-bottom: var(--spacing-4) !important;
+        max-width: 1200px !important;
+        margin: 0 auto !important;
+    }
+    
+    /* Section spacing */
+    .element-container {
+        margin-bottom: var(--spacing-3) !important;
+        padding: var(--spacing-2) 0 !important;
+    }
+    
+    /* Modern main header with consistent color */
     .main-header {
         font-size: 2.5rem;
-        color: #4361EE;
+        color: var(--primary);
         font-weight: 700;
-        margin-bottom: 1.2rem;
+        margin-bottom: var(--spacing-4);
         text-align: center;
-        padding: 1rem;
+        padding: var(--spacing-3);
         text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
         letter-spacing: -0.5px;
     }
@@ -115,22 +163,22 @@ st.markdown("""
     /* Modern sub-header */
     .sub-header {
         font-size: 1.5rem;
-        color: #3A0CA3;
+        color: var(--accent);
         font-weight: 600;
-        margin-top: 1.8rem;
-        border-bottom: 2px solid #F1F5F9;
-        padding-bottom: 0.5rem;
+        margin-top: var(--spacing-4);
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: var(--spacing-2);
         letter-spacing: -0.3px;
     }
     
     /* Modern description */
     .description {
-        color: #4B5563;
+        color: var(--text-secondary);
         font-size: 1.1rem;
-        margin: 0 auto 0.5rem auto;
+        margin: 0 auto var(--spacing-3) auto;
         background-color: transparent;
-        padding: 0.8rem;
-        border-radius: 0;
+        padding: var(--spacing-3);
+        border-radius: var(--radius);
         box-shadow: none;
         max-width: 90%;
         text-align: center;
@@ -140,35 +188,35 @@ st.markdown("""
     
     /* Modern success box */
     .success-box {
-        background-color: #ECFDF5;
-        padding: 1rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        border-left: 5px solid #10B981;
+        background-color: #d1e7dd;
+        padding: var(--spacing-3);
+        border-radius: var(--radius);
+        margin: var(--spacing-3) 0;
+        box-shadow: var(--shadow-sm);
+        border-left: 5px solid var(--success);
     }
     
     /* Modern info box */
     .info-box {
-        background-color: #EFF6FF;
-        padding: 1rem;
-        border-radius: 12px;
-        margin: 1rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        border-left: 5px solid #3B82F6;
+        background-color: #cff4fc;
+        padding: var(--spacing-3);
+        border-radius: var(--radius);
+        margin: var(--spacing-3) 0;
+        box-shadow: var(--shadow-sm);
+        border-left: 5px solid var(--info);
     }
     
-    /* Bootstrap-style buttons */
+    /* Bootstrap-style buttons with consistent sizing */
     .stButton button {
-        background-color: #0d6efd;
+        background-color: var(--primary);
         color: white;
         font-weight: 500;
-        border-radius: 4px;
-        padding: 0.5rem 1rem;
+        border-radius: var(--radius);
+        padding: var(--spacing-2) var(--spacing-3);
         border: none;
         text-transform: none;
         letter-spacing: normal;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-sm);
         transition: all 0.2s ease;
         width: 200px !important;
         height: 44px !important;
@@ -176,26 +224,27 @@ st.markdown("""
         display: flex;
         align-items: center;
         justify-content: center;
+        margin: var(--spacing-2) auto !important;
     }
     
     .stButton button:hover {
-        background-color: #0b5ed7;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        background-color: var(--primary-dark);
+        box-shadow: var(--shadow);
         transform: translateY(-1px);
     }
     
     .stButton button:active {
         transform: translateY(0);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-sm);
     }
     
     /* Sign out button specific styling */
     button[kind="secondary"], 
     [data-testid="baseButton-secondary"] {
-        background-color: #6c757d !important;
+        background-color: var(--secondary) !important;
         color: white !important;
         font-weight: 500 !important;
-        border-radius: 4px !important;
+        border-radius: var(--radius) !important;
         width: 200px !important;
         height: 44px !important;
     }
@@ -208,77 +257,102 @@ st.markdown("""
     /* Sidebar logout button */
     [data-testid="stSidebar"] .stButton button {
         width: 100% !important;
-        margin-bottom: 1rem;
+        margin: var(--spacing-3) 0 !important;
     }
     
-    /* Generate content button */
-    button[data-testid="baseButton-primary"] {
-        background-color: #0d6efd;
+    /* Generate content button - make it stand out with accent color */
+    button[data-testid="baseButton-primary"],
+    button[key="generate_content_button"] {
+        background-color: var(--accent) !important;
         width: 200px !important;
         height: 44px !important;
+        box-shadow: var(--shadow) !important;
+    }
+    
+    button[data-testid="baseButton-primary"]:hover,
+    button[key="generate_content_button"]:hover {
+        background-color: var(--accent-light) !important;
     }
     
     /* Modern download button */
     .stDownloadButton button {
-        background-color: #198754;
+        background-color: var(--success);
         color: white;
         font-weight: 500;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
         width: 200px !important;
         height: 44px !important;
+        margin: var(--spacing-2) auto !important;
     }
     
     .stDownloadButton button:hover {
         background-color: #157347;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--shadow);
         transform: translateY(-1px);
     }
     
-    /* Modern inputs */
+    /* Modern inputs with better spacing and focus states */
     .stTextInput input, .stTextArea textarea {
-        border-radius: 4px;
-        border: 1px solid #ced4da;
-        padding: 0.8rem;
+        border-radius: var(--radius);
+        border: 1px solid var(--border-color);
+        padding: var(--spacing-3);
+        margin: var(--spacing-2) 0;
         transition: all 0.3s ease;
-        background-color: #F9FAFB;
+        background-color: var(--bg-white);
         font-size: 1rem;
+        width: 100% !important;
     }
     
     .stTextInput input:focus, .stTextArea textarea:focus {
-        border: 1px solid #86b7fe;
+        border: 1px solid var(--primary);
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         background-color: white;
     }
     
+    /* Placeholder styling */
+    .stTextInput input::placeholder, .stTextArea textarea::placeholder {
+        color: var(--text-muted);
+        opacity: 0.8;
+    }
+    
+    /* Label styling */
+    .stTextInput label, .stTextArea label, .stSelectbox label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-1);
+        font-size: 0.9rem;
+    }
+    
     /* Modern slider */
     .stSlider div[data-baseweb="slider"] {
-        margin-top: 1rem;
+        margin: var(--spacing-3) 0;
     }
     
     .stSlider [data-testid="stThumbValue"] {
-        background-color: #0d6efd !important;
+        background-color: var(--primary) !important;
         color: white !important;
         font-weight: 600 !important;
         padding: 2px 8px !important;
-        border-radius: 4px !important;
+        border-radius: var(--radius-sm) !important;
     }
     
     /* Modern divider */
     hr {
-        margin: 1.5rem 0;
+        margin: var(--spacing-4) 0;
         border: none;
         height: 1px;
-        background-color: #dee2e6;
+        background-color: var(--border-color);
     }
     
     /* Modern expander */
     .streamlit-expanderHeader {
         font-weight: 600;
-        color: #0d6efd;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-        padding: 0.5rem 1rem !important;
+        color: var(--primary);
+        background-color: var(--bg-light);
+        border-radius: var(--radius);
+        padding: var(--spacing-2) var(--spacing-3) !important;
+        margin: var(--spacing-2) 0 !important;
     }
     
     /* Center content */
@@ -287,41 +361,42 @@ st.markdown("""
         justify-content: center;
         align-items: center;
         flex-direction: column;
+        margin: var(--spacing-3) 0;
     }
     
     /* Modern card containers */
     .card-container {
-        background-color: white;
-        border-radius: 8px;
-        padding: 1.8rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        margin: 1rem 0;
-        border: 1px solid #dee2e6;
+        background-color: var(--bg-white);
+        border-radius: var(--radius-lg);
+        padding: var(--spacing-4);
+        box-shadow: var(--shadow);
+        margin: var(--spacing-3) 0;
+        border: 1px solid var(--border-color);
     }
     
     /* Modern cache box */
     .cache-box {
         background-color: #cfe2ff;
-        border-left: 5px solid #0d6efd;
-        padding: 12px;
-        margin-bottom: 20px;
-        border-radius: 4px;
+        border-left: 5px solid var(--primary);
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+        border-radius: var(--radius);
         font-weight: 600;
         color: #084298;
     }
     
     .cache-details {
-        margin-top: 5px;
-        color: #6c757d;
+        margin-top: var(--spacing-2);
+        color: var(--text-secondary);
         font-weight: normal;
     }
     
     /* Modern section headers */
     [data-testid="stMarkdownContainer"] h3 {
-        color: #0d6efd;
+        color: var(--primary);
         font-weight: 600;
         font-size: 1.25rem;
-        margin-bottom: 0.75rem;
+        margin: var(--spacing-3) 0 var(--spacing-2) 0;
         display: flex;
         align-items: center;
         letter-spacing: -0.3px;
@@ -330,56 +405,64 @@ st.markdown("""
     /* Modern tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
-        background-color: #f8f9fa;
-        padding: 8px;
-        border-radius: 4px;
+        background-color: var(--bg-light);
+        padding: var(--spacing-2);
+        border-radius: var(--radius);
+        margin: var(--spacing-3) 0;
     }
     
     .stTabs [data-baseweb="tab"] {
-        border-radius: 4px;
-        padding: 8px 16px;
+        border-radius: var(--radius);
+        padding: var(--spacing-2) var(--spacing-3);
         font-weight: 500;
     }
     
     .stTabs [aria-selected="true"] {
-        background-color: #0d6efd !important;
+        background-color: var(--primary) !important;
         color: white !important;
     }
     
     /* Modern chat interface */
     [data-testid="stChatMessage"] {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        background-color: var(--bg-light);
+        border-radius: var(--radius);
+        padding: var(--spacing-3);
+        margin-bottom: var(--spacing-3);
+        box-shadow: var(--shadow-sm);
     }
     
     [data-testid="stChatMessageContent"] {
-        color: #212529;
+        color: var(--text-primary);
     }
     
     /* Modern selectbox */
     [data-baseweb="select"] {
-        border-radius: 4px;
+        border-radius: var(--radius);
+        margin: var(--spacing-2) 0;
     }
     
     [data-baseweb="select"] > div {
-        background-color: #F9FAFB;
-        border-color: #ced4da;
-        border-radius: 4px;
+        background-color: var(--bg-white);
+        border-color: var(--border-color);
+        border-radius: var(--radius);
+        padding: var(--spacing-2);
     }
     
     /* Modern checkbox */
+    [data-testid="stCheckbox"] {
+        margin: var(--spacing-2) 0;
+    }
+    
     [data-testid="stCheckbox"] > div > div {
-        background-color: #0d6efd;
-        border-radius: 4px;
+        background-color: var(--primary);
+        border-radius: var(--radius-sm);
     }
     
     /* Modern caption text */
     .stCaption {
-        color: #6c757d;
+        color: var(--text-secondary);
         font-size: 0.9rem;
+        margin-top: var(--spacing-1);
     }
     
     /* Animations */
@@ -395,6 +478,38 @@ st.markdown("""
     /* Add animation to main elements */
     .main-header, .description, .card-container {
         animation: fadeIn 0.5s ease-out;
+    }
+    
+    /* Column layout improvements */
+    .row-widget.stHorizontal {
+        gap: var(--spacing-3);
+        margin: var(--spacing-3) 0;
+    }
+    
+    /* Improve spacing for form elements */
+    .stForm > div {
+        padding: var(--spacing-3) !important;
+    }
+    
+    /* Sidebar styling */
+    [data-testid="stSidebar"] {
+        background-color: var(--bg-light);
+        padding: var(--spacing-3);
+    }
+    
+    [data-testid="stSidebar"] > div {
+        padding: var(--spacing-3);
+    }
+    
+    [data-testid="stSidebar"] h1 {
+        color: var(--primary);
+        font-size: 1.5rem;
+        margin-bottom: var(--spacing-3);
+    }
+    
+    /* Improve spacing for markdown elements */
+    [data-testid="stMarkdownContainer"] > p {
+        margin: var(--spacing-2) 0;
     }
 </style>
 """, unsafe_allow_html=True)

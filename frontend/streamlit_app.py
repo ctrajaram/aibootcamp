@@ -955,8 +955,10 @@ with main_tab:
                 """Update the progress bar and progress steps."""
                 progress_bar.progress(progress_value)
                 
-                # Increase delay to 1 second to make transitions more visible
-                time.sleep(1.0)
+                # Only add delay for specific transition points to reduce overall generation time
+                # while still making transitions visible
+                if progress_value in [0.25, 0.5, 0.75, 0.95]:
+                    time.sleep(1.0)  # Only delay at key transition points
                 
                 # Update progress steps based on progress value with clearer thresholds
                 if progress_value <= 0.25:
@@ -971,6 +973,7 @@ with main_tab:
                         </div>
                     </div>
                     """
+                    loading_message = "Researching your topic..."
                 elif progress_value <= 0.5:
                     step_html = """
                     <div class="progress-container">
@@ -983,6 +986,7 @@ with main_tab:
                         </div>
                     </div>
                     """
+                    loading_message = "Creating content outline..."
                 elif progress_value <= 0.75:
                     step_html = """
                     <div class="progress-container">
@@ -995,6 +999,7 @@ with main_tab:
                         </div>
                     </div>
                     """
+                    loading_message = "Drafting your blog post..."
                 else:
                     step_html = """
                     <div class="progress-container">
@@ -1007,20 +1012,12 @@ with main_tab:
                         </div>
                     </div>
                     """
+                    loading_message = "Finalizing and polishing content..."
                 
                 # Update the progress steps container
                 progress_steps_container.markdown(step_html, unsafe_allow_html=True)
                 
                 # Also update the loading message based on the current step
-                if progress_value <= 0.25:
-                    loading_message = "Researching your topic..."
-                elif progress_value <= 0.5:
-                    loading_message = "Creating content outline..."
-                elif progress_value <= 0.75:
-                    loading_message = "Drafting your blog post..."
-                else:
-                    loading_message = "Finalizing and polishing content..."
-                
                 loading_container.markdown(f"""
                 <div class="loading-animation">
                     <div class="dot"></div>
@@ -1094,17 +1091,21 @@ with main_tab:
                             
                             # Display cache information with more details
                             if result.get("source") == "cached":
-                                st.markdown(
-                                    f"""
-                                    <div class="cache-box">
-                                        ♻️ Content retrieved from cache
-                                        <div class="cache-details">
-                                            <small>Originally generated: {result.get("cached_at", "unknown time")}</small>
-                                        </div>
+                                # For cached results, immediately show completion instead of stepping through
+                                progress_bar.progress(1.0)
+                                progress_steps_container.markdown("""
+                                <div class="progress-container">
+                                    <span class="progress-label">Content Generation Progress</span>
+                                    <div class="progress-steps">
+                                        <div class="progress-step completed">Research</div>
+                                        <div class="progress-step completed">Outline</div>
+                                        <div class="progress-step completed">Draft</div>
+                                        <div class="progress-step completed">Finalize</div>
                                     </div>
-                                    """, 
-                                    unsafe_allow_html=True
-                                )
+                                </div>
+                                """, unsafe_allow_html=True)
+                                loading_container.empty()  # Remove the loading animation
+                                st.success("✅ Retrieved cached content successfully!")
                             else:
                                 st.success("✅ New content generated successfully!")
                             

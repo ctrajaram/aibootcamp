@@ -415,19 +415,51 @@ with st.sidebar:
     with logout_container:
         st.markdown("""
         <style>
-        .logout-button {
-            margin-bottom: 20px;
-            padding-bottom: 20px;
+        /* Style the logout section */
+        .logout-section {
+            padding: 1rem;
+            margin-bottom: 1rem;
             border-bottom: 1px solid #e0e0e0;
         }
+        
+        /* Style the logout button */
+        .stButton > button {
+            width: 100% !important;
+            background-color: #4F46E5 !important;
+            color: white !important;
+            padding: 0.5rem 1rem !important;
+            font-size: 14px !important;
+            border-radius: 6px !important;
+            border: none !important;
+            cursor: pointer !important;
+            margin: 0.5rem 0 !important;
+            font-weight: 500 !important;
+        }
         </style>
-        <div class="logout-button">
-        </div>
         """, unsafe_allow_html=True)
         
         # Display user info and logout button
         st.markdown(f"**Logged in as:** {name}")
-        logout()  # This calls the logout function from auth.py
+        
+        # Create sign out button
+        if st.button("Sign Out", key="logout_button"):
+            # Call logout function
+            logout()
+            # Clear session state
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            # Redirect to home page
+            st.markdown(
+                """
+                <script>
+                    window.parent.location.href = '/';
+                    localStorage.clear();
+                    sessionStorage.clear();
+                </script>
+                """,
+                unsafe_allow_html=True
+            )
+            st.stop()
     
     # Use session state to track button clicks without direct rerun in callbacks
     if "dark_mode_clicked" not in st.session_state:

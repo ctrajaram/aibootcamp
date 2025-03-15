@@ -20,7 +20,7 @@ from app.agents.researcher import ResearchTopic, research_topic
 if 'dark_mode' not in st.session_state:
     st.session_state.dark_mode = False
 if 'compact_view' not in st.session_state:
-    st.session_state.compact_view = False
+    st.session_state.compact_view = True  # Set compact view as default
 
 # Require authentication
 name, username = require_auth()
@@ -158,50 +158,87 @@ st.markdown("""
         border-left: 5px solid #3B82F6;
     }
     
-    /* Modern buttons */
+    /* Bootstrap-style buttons */
     .stButton button {
-        background-color: #4361EE;
+        background-color: #0d6efd;
         color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        padding: 0.7rem 1.4rem;
+        font-weight: 500;
+        border-radius: 4px;
+        padding: 0.5rem 1rem;
         border: none;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        box-shadow: 0 4px 6px rgba(67, 97, 238, 0.25);
-        transition: all 0.3s ease;
+        text-transform: none;
+        letter-spacing: normal;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+        width: 200px !important;
+        height: 44px !important;
+        font-size: 1rem !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .stButton button:hover {
-        background-color: #3A56D4;
-        box-shadow: 0 6px 10px rgba(67, 97, 238, 0.3);
-        transform: translateY(-2px);
+        background-color: #0b5ed7;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
     }
     
     .stButton button:active {
         transform: translateY(0);
-        box-shadow: 0 2px 3px rgba(67, 97, 238, 0.2);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Sign out button specific styling */
+    button[kind="secondary"], 
+    [data-testid="baseButton-secondary"] {
+        background-color: #6c757d !important;
+        color: white !important;
+        font-weight: 500 !important;
+        border-radius: 4px !important;
+        width: 200px !important;
+        height: 44px !important;
+    }
+    
+    button[kind="secondary"]:hover, 
+    [data-testid="baseButton-secondary"]:hover {
+        background-color: #5c636a !important;
+    }
+    
+    /* Sidebar logout button */
+    [data-testid="stSidebar"] .stButton button {
+        width: 100% !important;
+        margin-bottom: 1rem;
+    }
+    
+    /* Generate content button */
+    button[data-testid="baseButton-primary"] {
+        background-color: #0d6efd;
+        width: 200px !important;
+        height: 44px !important;
     }
     
     /* Modern download button */
     .stDownloadButton button {
-        background-color: #10B981;
+        background-color: #198754;
         color: white;
-        font-weight: 600;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);
+        font-weight: 500;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        width: 200px !important;
+        height: 44px !important;
     }
     
     .stDownloadButton button:hover {
-        background-color: #059669;
-        box-shadow: 0 6px 10px rgba(16, 185, 129, 0.3);
-        transform: translateY(-2px);
+        background-color: #157347;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
     }
     
     /* Modern inputs */
     .stTextInput input, .stTextArea textarea {
-        border-radius: 8px;
-        border: 1px solid #E5E7EB;
+        border-radius: 4px;
+        border: 1px solid #ced4da;
         padding: 0.8rem;
         transition: all 0.3s ease;
         background-color: #F9FAFB;
@@ -209,8 +246,8 @@ st.markdown("""
     }
     
     .stTextInput input:focus, .stTextArea textarea:focus {
-        border: 1px solid #4361EE;
-        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        border: 1px solid #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         background-color: white;
     }
     
@@ -220,11 +257,11 @@ st.markdown("""
     }
     
     .stSlider [data-testid="stThumbValue"] {
-        background-color: #4361EE !important;
+        background-color: #0d6efd !important;
         color: white !important;
         font-weight: 600 !important;
         padding: 2px 8px !important;
-        border-radius: 6px !important;
+        border-radius: 4px !important;
     }
     
     /* Modern divider */
@@ -232,15 +269,15 @@ st.markdown("""
         margin: 1.5rem 0;
         border: none;
         height: 1px;
-        background-color: #E5E7EB;
+        background-color: #dee2e6;
     }
     
     /* Modern expander */
     .streamlit-expanderHeader {
         font-weight: 600;
-        color: #4361EE;
-        background-color: #F8FAFC;
-        border-radius: 8px;
+        color: #0d6efd;
+        background-color: #f8f9fa;
+        border-radius: 4px;
         padding: 0.5rem 1rem !important;
     }
     
@@ -255,33 +292,33 @@ st.markdown("""
     /* Modern card containers */
     .card-container {
         background-color: white;
-        border-radius: 12px;
+        border-radius: 8px;
         padding: 1.8rem;
         box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         margin: 1rem 0;
-        border: 1px solid #F1F5F9;
+        border: 1px solid #dee2e6;
     }
     
     /* Modern cache box */
     .cache-box {
-        background-color: #EFF6FF;
-        border-left: 5px solid #3B82F6;
+        background-color: #cfe2ff;
+        border-left: 5px solid #0d6efd;
         padding: 12px;
         margin-bottom: 20px;
-        border-radius: 8px;
+        border-radius: 4px;
         font-weight: 600;
-        color: #2563EB;
+        color: #084298;
     }
     
     .cache-details {
         margin-top: 5px;
-        color: #6B7280;
+        color: #6c757d;
         font-weight: normal;
     }
     
     /* Modern section headers */
     [data-testid="stMarkdownContainer"] h3 {
-        color: #4361EE;
+        color: #0d6efd;
         font-weight: 600;
         font-size: 1.25rem;
         margin-bottom: 0.75rem;
@@ -293,67 +330,55 @@ st.markdown("""
     /* Modern tabs */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
-        background-color: #F8FAFC;
+        background-color: #f8f9fa;
         padding: 8px;
-        border-radius: 12px;
+        border-radius: 4px;
     }
     
     .stTabs [data-baseweb="tab"] {
-        border-radius: 8px;
+        border-radius: 4px;
         padding: 8px 16px;
         font-weight: 500;
     }
     
     .stTabs [aria-selected="true"] {
-        background-color: #4361EE !important;
+        background-color: #0d6efd !important;
         color: white !important;
     }
     
     /* Modern chat interface */
     [data-testid="stChatMessage"] {
-        background-color: #F8FAFC;
-        border-radius: 12px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
         padding: 12px;
         margin-bottom: 12px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
     
     [data-testid="stChatMessageContent"] {
-        color: #1F2937;
+        color: #212529;
     }
     
     /* Modern selectbox */
     [data-baseweb="select"] {
-        border-radius: 8px;
+        border-radius: 4px;
     }
     
     [data-baseweb="select"] > div {
         background-color: #F9FAFB;
-        border-color: #E5E7EB;
-        border-radius: 8px;
+        border-color: #ced4da;
+        border-radius: 4px;
     }
     
     /* Modern checkbox */
     [data-testid="stCheckbox"] > div > div {
-        background-color: #4361EE;
+        background-color: #0d6efd;
         border-radius: 4px;
-    }
-    
-    /* Clear chat history button */
-    button[kind="secondary"] {
-        background-color: #6B7280;
-        color: white;
-        font-weight: 600;
-        border-radius: 8px;
-    }
-    
-    button[kind="secondary"]:hover {
-        background-color: #4B5563;
     }
     
     /* Modern caption text */
     .stCaption {
-        color: #6B7280;
+        color: #6c757d;
         font-size: 0.9rem;
     }
     
@@ -418,14 +443,14 @@ with st.sidebar:
         .logout-button {
             margin-bottom: 20px;
             padding-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #dee2e6;
         }
         
         /* Style the logout button specifically */
         .logout-section {
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #dee2e6;
         }
         </style>
         <div class="logout-button">
@@ -435,7 +460,7 @@ with st.sidebar:
         # Display user info and logout button
         st.markdown(f"**Logged in as:** {name}")
         
-        # Create a dedicated logout button with a unique key
+        # Create a dedicated logout button with a unique key and Bootstrap styling
         if st.button("Sign Out", key="sidebar_logout_button"):
             # Call the logout function
             logout()
@@ -445,265 +470,51 @@ with st.sidebar:
             # Force a rerun to redirect to login page
             st.rerun()
     
-    # Use session state to track button clicks without direct rerun in callbacks
-    if "dark_mode_clicked" not in st.session_state:
-        st.session_state.dark_mode_clicked = False
-    if "compact_view_clicked" not in st.session_state:
-        st.session_state.compact_view_clicked = False
-    
-    # Define callback functions that only update state variables
-    def toggle_dark_mode():
-        st.session_state.dark_mode_clicked = True
-        
-    def toggle_compact_view():
-        st.session_state.compact_view_clicked = True
-    
-    # Create buttons instead of toggles for more reliable behavior
-    dark_mode_label = "🌙 Disable Dark Mode" if st.session_state.dark_mode else "🌙 Enable Dark Mode"
-    compact_view_label = "📏 Disable Compact View" if st.session_state.compact_view else "📏 Enable Compact View"
-    
-    st.button(dark_mode_label, on_click=toggle_dark_mode, key="dark_mode_button")
-    st.button(compact_view_label, on_click=toggle_compact_view, key="compact_view_button")
-    
-    # Handle the actual toggling outside of callbacks
-    if st.session_state.dark_mode_clicked:
-        st.session_state.dark_mode = not st.session_state.dark_mode
-        st.session_state.dark_mode_clicked = False
-        st.rerun()
-        
-    if st.session_state.compact_view_clicked:
-        st.session_state.compact_view = not st.session_state.compact_view
-        st.session_state.compact_view_clicked = False
-        st.rerun()
-    
-    # Display current theme status
-    st.caption(f"Current theme: {'Dark' if st.session_state.dark_mode else 'Light'}, {'Compact' if st.session_state.compact_view else 'Standard'}")
-    
-    # Apply dark mode styling if enabled
-    if st.session_state.dark_mode:
-        st.markdown("""
-        <style>
-            .stApp {
-                background-color: #121212;
-                color: #f0f0f0;
-            }
-            .main-header {
-                color: #90CAF9 !important;
-            }
-            .description {
-                background-color: transparent !important;
-                color: #e0e0e0 !important;
-            }
-            .card-container {
-                background-color: #1E1E1E !important;
-                box-shadow: 0 3px 10px rgba(0,0,0,0.4) !important;
-            }
-            .stTextInput input, .stTextArea textarea {
-                background-color: #2D2D2D !important;
-                color: #e0e0e0 !important;
-                border-color: #555 !important;
-            }
-            .stTextInput input:focus, .stTextArea textarea:focus {
-                border-color: #90CAF9 !important;
-            }
-            .streamlit-expanderHeader {
-                color: #90CAF9 !important;
-            }
-            /* Dark mode for blog preview */
-            .blog-preview {
-                background-color: #1E1E1E !important;
-                color: #e0e0e0 !important;
-            }
-            .blog-preview h1, 
-            .blog-preview h2, 
-            .blog-preview h3, 
-            .blog-preview h4, 
-            .blog-preview h5, 
-            .blog-preview h6 {
-                color: #90CAF9 !important;
-            }
-            .blog-preview p {
-                color: #e0e0e0 !important;
-            }
-            .blog-preview code {
-                background-color: #2D2D2D !important;
-                color: #e0e0e0 !important;
-            }
-            .blog-preview pre {
-                background-color: #2D2D2D !important;
-            }
-            .stMarkdown {
-                color: #e0e0e0 !important;
-            }
-            .stButton button {
-                border: 1px solid #555 !important;
-            }
-            .stTabs [data-baseweb="tab-list"] {
-                background-color: #1E1E1E !important;
-            }
-            .stTabs [data-baseweb="tab"] {
-                color: #e0e0e0 !important;
-            }
-            .stTabs [aria-selected="true"] {
-                background-color: #2D2D2D !important;
-                color: #90CAF9 !important;
-            }
-            .stSelectbox [data-baseweb="select"] {
-                background-color: #2D2D2D !important;
-            }
-            .stSelectbox [data-baseweb="select"] > div {
-                background-color: #2D2D2D !important;
-                color: #e0e0e0 !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-    
-    # Apply compact view styling if enabled
-    if st.session_state.compact_view:
-        st.markdown("""
-        <style>
-            .main-header {
-                font-size: 2rem !important;
-                margin-bottom: 0.8rem !important;
-                padding: 0.5rem !important;
-            }
-            .description {
-                font-size: 0.9rem !important;
-                padding: 0.8rem !important;
-                margin-bottom: 1rem !important;
-            }
-            .card-container {
-                padding: 1rem !important;
-                margin: 0.5rem 0 !important;
-            }
-            .stButton button {
-                padding: 0.4rem 0.8rem !important;
-            }
-            div.row-widget.stRadio > div {
-                flex-direction: row !important;
-                align-items: center !important;
-            }
-            div.row-widget.stRadio > div > label {
-                padding: 0.2rem 0.5rem !important;
-                margin: 0 0.2rem !important;
-            }
-            .stTabs [data-baseweb="tab"] {
-                padding-top: 0.4rem !important;
-                padding-bottom: 0.4rem !important;
-            }
-            .streamlit-expanderHeader {
-                font-size: 0.9rem !important;
-                padding: 0.4rem !important;
-            }
-            /* Reduce spacing between elements */
-            .stMarkdown p {
-                margin-bottom: 0.5rem !important;
-            }
-            .element-container {
-                margin-bottom: 0.5rem !important;
-            }
-        </style>
-        """, unsafe_allow_html=True)
-
-# Add project roadmap in sidebar
-with st.sidebar:
-    st.markdown("---")
-    st.markdown("### 🗺️ Project Roadmap")
-    
-    # Current Features
+    # Apply compact view styling by default
     st.markdown("""
-    #### ✅ Implemented Features
-    
-    **🎯 Core Features**
-    - AI Blog Generation
-    - Multi-Expert Chat System
-    - Content Caching
-    - Markdown/HTML Export
-    
-    **🔐 Security**
-    - Basic Authentication
-    - Session Management
-    - API Key Protection
-    
-    **💅 UI/UX**
-    - Dark/Light Mode
-    - Compact View
-    - Modern Design
-    - Responsive Layout
-    
-    **🤖 AI Experts**
-    - Research Expert (🔍)
-    - Content Editor (✏️)
-    - Technical Reviewer (🛠️)
-    - SEO Specialist (📈)
-    """)
-    
-    # Progress Indicators
-    st.markdown("#### 🚀 Development Progress")
-    
-    # Calculate progress for each area
-    core_progress = 85
-    security_progress = 60
-    ux_progress = 75
-    ai_progress = 70
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("Core")
-        st.progress(core_progress/100)
-        
-        st.markdown("Security")
-        st.progress(security_progress/100)
-    
-    with col2:
-        st.markdown("UX/UI")
-        st.progress(ux_progress/100)
-        
-        st.markdown("AI Features")
-        st.progress(ai_progress/100)
-    
-    # Upcoming Features
-    st.markdown("""
-    #### 🔮 Coming Soon
-    
-    **📱 Enhanced UX**
-    - Auto-save functionality
-    - Advanced loading states
-    - Progress tracking
-    - Keyboard shortcuts
-    
-    **🤝 Agent Improvements**
-    - Agent collaboration
-    - Direct content editing
-    - Chat history persistence
-    - Custom agent creation
-    
-    **🔒 Advanced Security**
-    - User registration
-    - OAuth integration
-    - Role-based access
-    
-    **📊 Analytics**
-    - Content metrics
-    - Usage statistics
-    - Performance tracking
-    
-    **💾 Data Management**
-    - Blog versioning
-    - Export templates
-    - Bulk operations
-    """)
-    
-    # Deployment Status
-    st.markdown("""
-    #### 🌐 Deployment
-    - Local Development ✅
-    - AWS Setup 🔄
-    - Security Hardening 🔄
-    - Performance Optimization 🔄
-    """)
-    
-    st.markdown("---")
+    <style>
+        .main-header {
+            font-size: 2rem !important;
+            margin-bottom: 0.8rem !important;
+            padding: 0.5rem !important;
+        }
+        .description {
+            font-size: 0.9rem !important;
+            padding: 0.8rem !important;
+            margin-bottom: 1rem !important;
+        }
+        .card-container {
+            padding: 1rem !important;
+            margin: 0.5rem 0 !important;
+        }
+        .stButton button {
+            padding: 0.4rem 0.8rem !important;
+        }
+        div.row-widget.stRadio > div {
+            flex-direction: row !important;
+            align-items: center !important;
+        }
+        div.row-widget.stRadio > div > label {
+            padding: 0.2rem 0.5rem !important;
+            margin: 0 0.2rem !important;
+        }
+        .stTabs [data-baseweb="tab"] {
+            padding-top: 0.4rem !important;
+            padding-bottom: 0.4rem !important;
+        }
+        .streamlit-expanderHeader {
+            font-size: 0.9rem !important;
+            padding: 0.4rem !important;
+        }
+        /* Reduce spacing between elements */
+        .stMarkdown p {
+            margin-bottom: 0.5rem !important;
+        }
+        .element-container {
+            margin-bottom: 0.5rem !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
 # Input section in a card-like container
 # Removing the card container div
@@ -751,7 +562,7 @@ with main_tab:
     # Add a divider
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # Create a single button and store its state - centered
+    # Create a single button and store its state - centered with Bootstrap styling
     st.markdown('<div class="center-content">', unsafe_allow_html=True)
     generate_clicked = st.button("🚀 Generate Content", key="generate_content_button")
     st.markdown('</div>', unsafe_allow_html=True)

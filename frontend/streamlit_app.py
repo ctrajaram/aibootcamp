@@ -742,6 +742,150 @@ st.markdown("""
             min-width: 100% !important;
         }
     }
+
+    /* Add specific styles for iPhone SE and other small devices */
+    @media (max-width: 375px) {
+        /* Reduce overall padding */
+        .block-container {
+            padding: var(--spacing-2) !important;
+        }
+        
+        /* Make main header smaller */
+        .main-header {
+            font-size: 1.3rem !important;
+            padding: var(--spacing-1) !important;
+            margin-bottom: var(--spacing-2) !important;
+        }
+        
+        /* Reduce description size */
+        .description {
+            font-size: 0.8rem !important;
+            padding: var(--spacing-1) !important;
+        }
+        
+        /* Make buttons smaller but still usable */
+        .stButton button {
+            width: 100% !important;
+            max-width: 140px !important;
+            height: 38px !important;
+            font-size: 0.9rem !important;
+            padding: 4px 8px !important;
+        }
+        
+        button[key="generate_content_button"] {
+            width: 160px !important;
+            height: 42px !important;
+        }
+        
+        /* Adjust input fields for better mobile experience */
+        input[type="text"], textarea {
+            font-size: 16px !important; /* Prevents iOS zoom on focus */
+        }
+        
+        /* Make expert buttons stack vertically on iPhone SE */
+        [data-testid="column"] {
+            min-width: 100% !important;
+            margin-bottom: var(--spacing-1) !important;
+        }
+        
+        /* Adjust expert buttons container */
+        .agent-selector-container {
+            flex-direction: column !important;
+        }
+        
+        /* Make tabs more compact */
+        .stTabs [data-baseweb="tab"] {
+            padding: 4px 8px !important;
+            font-size: 0.85rem !important;
+        }
+        
+        /* Reduce section header size */
+        [data-testid="stMarkdownContainer"] h3 {
+            font-size: 1rem !important;
+        }
+        
+        /* Adjust chat interface for small screens */
+        [data-testid="stChatMessage"] {
+            padding: var(--spacing-2) !important;
+            margin-bottom: var(--spacing-2) !important;
+        }
+        
+        /* Make text areas smaller */
+        .stTextArea textarea {
+            min-height: 200px !important;
+        }
+    }
+    
+    /* Style for the agent selector container */
+    .agent-selector-container {
+        margin-bottom: 20px;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    /* Style for the agent selector title */
+    .agent-selector-title {
+        font-weight: 500;
+        margin-bottom: 10px;
+        color: var(--text-primary);
+    }
+    
+    /* Hide the default radio button appearance */
+    div.row-widget.stRadio > div {
+        flex-direction: column !important;
+        gap: 0 !important;
+    }
+    
+    div.row-widget.stRadio > div > label {
+        padding: 12px 15px !important;
+        cursor: pointer !important;
+        border-bottom: 1px solid #e9ecef !important;
+        margin: 0 !important;
+        transition: all 0.2s ease !important;
+        background-color: white !important;
+        position: relative !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    div.row-widget.stRadio > div > label:hover {
+        background-color: #f8f9fa !important;
+    }
+    
+    div.row-widget.stRadio > div > label:first-child {
+        border-top-left-radius: 8px !important;
+        border-top-right-radius: 8px !important;
+    }
+    
+    div.row-widget.stRadio > div > label:last-child {
+        border-bottom-left-radius: 8px !important;
+        border-bottom-right-radius: 8px !important;
+        border-bottom: none !important;
+    }
+    
+    div.row-widget.stRadio > div > label[data-baseweb="radio"] > div:first-child {
+        background-color: white !important;
+        border-color: #0d6efd !important;
+    }
+    
+    div.row-widget.stRadio > div > label[data-baseweb="radio"] > div:first-child div {
+        background-color: #0d6efd !important;
+        border-color: #0d6efd !important;
+    }
+    
+    /* Add icons to the radio options */
+    div.row-widget.stRadio > div > label[data-baseweb="radio"] > div:last-child::before {
+        margin-right: 10px;
+        font-size: 18px;
+    }
+    
+    /* Selected state styling */
+    div.row-widget.stRadio > div > label[aria-checked="true"] {
+        background-color: #e9f2ff !important;
+        font-weight: 600 !important;
+        border-left: 4px solid #0d6efd !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -910,7 +1054,7 @@ with col2:
         st.caption("⚠️ Generating fresh content uses more API credits")
 
 # Add tabs for main content and chat
-main_tab, chat_tab = st.tabs(["📝 Blog Generator", "💬 Chat with Research Expert"])
+main_tab, chat_tab = st.tabs(["📝 Blog Generator", "💬 Chat with Experts"])
 
 with main_tab:
     # Add a divider
@@ -1291,7 +1435,7 @@ with chat_tab:
     # Import the chat agents
     from app.agents.chat_agents import get_agent_response
     
-    st.markdown("## 💬 Chat with Research Expert")
+    st.markdown("## 💬 Chat with Experts")
     
     # Check if a blog has been generated
     if "current_blog_content" not in st.session_state:
@@ -1319,9 +1463,12 @@ with chat_tab:
         
         # Define agent options and set Research Expert as default
         agent_options = ["Research Expert", "Content Editor", "Technical Reviewer", "SEO Specialist"]
-        default_agent = "Research Expert"
         
-        # Display agent descriptions
+        # Initialize selected agent in session state if not already done
+        if "selected_agent" not in st.session_state:
+            st.session_state.selected_agent = "Research Expert"
+        
+        # Define agent descriptions and icons
         agent_descriptions = {
             "Research Expert": "Finds accurate information and answers questions about technical topics.",
             "Content Editor": "Improves clarity, structure, and readability of your content.",
@@ -1336,10 +1483,130 @@ with chat_tab:
             "SEO Specialist": "📈"
         }
         
-        # Display Research Expert description
+        # Add CSS for custom agent selector buttons
+        st.markdown("""
+        <style>
+        /* Custom agent selector styling */
+        .agent-selector-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .agent-selector-title {
+            font-weight: 500;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+        
+        .agent-button {
+            background-color: white;
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+            padding: 12px 15px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .agent-button:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .agent-button:first-child {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+        
+        .agent-button:last-child {
+            border-bottom: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+        
+        .agent-button.selected {
+            background-color: #e9f2ff;
+            font-weight: 600;
+            border-left: 4px solid #0d6efd;
+        }
+        
+        .agent-button .icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Create callback functions to update the selected agent
+        def set_agent(agent_name):
+            st.session_state.selected_agent = agent_name
+            st.rerun()  # Force a rerun to update the UI
+        
+        # Add a clear title for the agent selector
+        st.markdown("<div class='agent-selector-title'>Click an Expert to Chat:</div>", unsafe_allow_html=True)
+        
+        # Create custom buttons for agent selection
+        st.markdown("<div class='agent-selector-container'>", unsafe_allow_html=True)
+        
+        # Responsive layout - use 2 columns on small screens, 4 on larger screens
+        # Check if screen width is small (like iPhone SE)
+        st.markdown("""
+        <style>
+        /* This will be used to control the column layout based on screen size */
+        @media (max-width: 576px) {
+            .expert-buttons-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+        }
+        
+        @media (min-width: 577px) {
+            .expert-buttons-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                gap: 8px;
+            }
+        }
+        </style>
+        <div class="expert-buttons-container">
+        """, unsafe_allow_html=True)
+        
+        # Create a button for each agent
+        for i, agent in enumerate(agent_options):
+            # Determine if this agent is selected
+            is_selected = st.session_state.selected_agent == agent
+            
+            # Create columns that will adapt based on screen size
+            cols = st.columns([1])
+            
+            # Create the button with the appropriate styling
+            if cols[0].button(
+                f"{agent_icons[agent]} {agent}", 
+                key=f"agent_button_{agent.replace(' ', '_')}",
+                use_container_width=True,
+                type="primary" if is_selected else "secondary"
+            ):
+                set_agent(agent)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Get the currently selected agent
+        selected_agent = st.session_state.selected_agent
+        
+        # Display selected agent description
         st.markdown(f"""
         <div style="background-color: #F8FAFC; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #4361EE; margin-bottom: 15px;">
-            <p style="margin: 0; font-size: 0.95rem;"><strong>{agent_icons[default_agent]} {default_agent}:</strong> {agent_descriptions[default_agent]}</p>
+            <p style="margin: 0; font-size: 0.95rem;"><strong>{agent_icons[selected_agent]} {selected_agent}:</strong> {agent_descriptions[selected_agent]}</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -1356,7 +1623,7 @@ with chat_tab:
         st.markdown("</div>", unsafe_allow_html=True)
         
         # Use Streamlit's native chat_input which appears at the bottom
-        if prompt := st.chat_input("Ask the Research Expert a question...", key=f"chat_input_{st.session_state.chat_input_key}"):
+        if prompt := st.chat_input(f"Ask the {selected_agent} a question...", key=f"chat_input_{st.session_state.chat_input_key}"):
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
             
@@ -1364,11 +1631,11 @@ with chat_tab:
             with st.chat_message("user"):
                 st.markdown(prompt)
             
-            # Get response from Research Expert
-            with st.chat_message("assistant", avatar=agent_icons[default_agent]):
-                with st.spinner(f"Consulting {default_agent}..."):
+            # Get response from selected agent
+            with st.chat_message("assistant", avatar=agent_icons[selected_agent]):
+                with st.spinner(f"Consulting {selected_agent}..."):
                     response = get_agent_response(
-                        default_agent, 
+                        selected_agent, 
                         prompt, 
                         st.session_state.current_blog_content
                     )
@@ -1378,7 +1645,7 @@ with chat_tab:
             st.session_state.messages.append({
                 "role": "assistant", 
                 "content": response,
-                "avatar": agent_icons[default_agent]
+                "avatar": agent_icons[selected_agent]
             })
             
             # Increment the key to create a new input widget on next rerun

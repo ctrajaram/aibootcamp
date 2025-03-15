@@ -150,7 +150,7 @@ st.markdown("""
     
     /* Modern main header with consistent color */
     .main-header {
-        font-size: 2.5rem;
+        font-size: 2.8rem;
         color: var(--primary);
         font-weight: 700;
         margin-bottom: var(--spacing-4);
@@ -158,6 +158,9 @@ st.markdown("""
         padding: var(--spacing-3);
         text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
         letter-spacing: -0.5px;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23e0e0e0' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-position: center;
+        border-radius: var(--radius-lg);
     }
     
     /* Modern sub-header */
@@ -206,12 +209,12 @@ st.markdown("""
         border-left: 5px solid var(--info);
     }
     
-    /* Bootstrap-style buttons with consistent sizing */
+    /* Bootstrap-style buttons with consistent sizing and icons */
     .stButton button {
         background-color: var(--primary);
         color: white;
         font-weight: 500;
-        border-radius: var(--radius);
+        border-radius: 8px;
         padding: var(--spacing-2) var(--spacing-3);
         border: none;
         text-transform: none;
@@ -225,17 +228,52 @@ st.markdown("""
         align-items: center;
         justify-content: center;
         margin: var(--spacing-2) auto !important;
+        position: relative;
+        overflow: hidden;
     }
     
     .stButton button:hover {
         background-color: var(--primary-dark);
         box-shadow: var(--shadow);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
     }
     
     .stButton button:active {
         transform: translateY(0);
         box-shadow: var(--shadow-sm);
+    }
+    
+    .stButton button:after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+    
+    .stButton button:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+    
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        20% {
+            transform: scale(25, 25);
+            opacity: 0.3;
+        }
+        100% {
+            opacity: 0;
+            transform: scale(40, 40);
+        }
     }
     
     /* Sign out button specific styling */
@@ -244,7 +282,7 @@ st.markdown("""
         background-color: var(--secondary) !important;
         color: white !important;
         font-weight: 500 !important;
-        border-radius: var(--radius) !important;
+        border-radius: 8px !important;
         width: 200px !important;
         height: 44px !important;
     }
@@ -252,26 +290,40 @@ st.markdown("""
     button[kind="secondary"]:hover, 
     [data-testid="baseButton-secondary"]:hover {
         background-color: #5c636a !important;
+        transform: translateY(-2px) !important;
+        box-shadow: var(--shadow) !important;
     }
     
-    /* Sidebar logout button */
-    [data-testid="stSidebar"] .stButton button {
-        width: 100% !important;
-        margin: var(--spacing-3) 0 !important;
+    button[kind="secondary"]:active, 
+    [data-testid="baseButton-secondary"]:active {
+        transform: translateY(0) !important;
+        box-shadow: var(--shadow-sm) !important;
     }
     
     /* Generate content button - make it stand out with accent color */
     button[data-testid="baseButton-primary"],
     button[key="generate_content_button"] {
         background-color: var(--accent) !important;
-        width: 200px !important;
-        height: 44px !important;
+        width: 220px !important;
+        height: 48px !important;
         box-shadow: var(--shadow) !important;
+        font-size: 1.1rem !important;
+        font-weight: 600 !important;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px !important;
     }
     
     button[data-testid="baseButton-primary"]:hover,
     button[key="generate_content_button"]:hover {
         background-color: var(--accent-light) !important;
+        transform: translateY(-3px) !important;
+        box-shadow: 0 8px 15px rgba(0,0,0,0.2) !important;
+    }
+    
+    button[data-testid="baseButton-primary"]:active,
+    button[key="generate_content_button"]:active {
+        transform: translateY(-1px) !important;
     }
     
     /* Modern download button */
@@ -279,127 +331,114 @@ st.markdown("""
         background-color: var(--success);
         color: white;
         font-weight: 500;
-        border-radius: var(--radius);
+        border-radius: 8px;
         box-shadow: var(--shadow-sm);
         width: 200px !important;
         height: 44px !important;
         margin: var(--spacing-2) auto !important;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .stDownloadButton button:hover {
         background-color: #157347;
         box-shadow: var(--shadow);
-        transform: translateY(-1px);
+        transform: translateY(-2px);
     }
     
-    /* Modern inputs with better spacing and focus states */
-    .stTextInput input, .stTextArea textarea {
-        border-radius: var(--radius);
-        border: 1px solid var(--border-color);
-        padding: var(--spacing-3);
-        margin: var(--spacing-2) 0;
-        transition: all 0.3s ease;
-        background-color: var(--bg-white);
-        font-size: 1rem;
-        width: 100% !important;
+    .stDownloadButton button:active {
+        transform: translateY(0);
+        box-shadow: var(--shadow-sm);
     }
     
-    .stTextInput input:focus, .stTextArea textarea:focus {
-        border: 1px solid var(--primary);
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        background-color: white;
+    /* Add icons to buttons using pseudo-elements */
+    button[key="generate_content_button"]:before {
+        content: "🚀";
+        margin-right: 8px;
     }
     
-    /* Placeholder styling */
-    .stTextInput input::placeholder, .stTextArea textarea::placeholder {
-        color: var(--text-muted);
-        opacity: 0.8;
+    .stDownloadButton button[title*="Markdown"]:before {
+        content: "📥";
+        margin-right: 8px;
     }
     
-    /* Label styling */
-    .stTextInput label, .stTextArea label, .stSelectbox label {
-        font-weight: 500;
-        color: var(--text-primary);
-        margin-bottom: var(--spacing-1);
-        font-size: 0.9rem;
+    .stDownloadButton button[title*="HTML"]:before {
+        content: "📄";
+        margin-right: 8px;
     }
     
-    /* Modern slider */
-    .stSlider div[data-baseweb="slider"] {
-        margin: var(--spacing-3) 0;
+    button[key="sidebar_logout_button"]:before {
+        content: "🚪";
+        margin-right: 8px;
     }
     
-    .stSlider [data-testid="stThumbValue"] {
-        background-color: var(--primary) !important;
-        color: white !important;
-        font-weight: 600 !important;
-        padding: 2px 8px !important;
-        border-radius: var(--radius-sm) !important;
-    }
-    
-    /* Modern divider */
-    hr {
-        margin: var(--spacing-4) 0;
-        border: none;
-        height: 1px;
-        background-color: var(--border-color);
-    }
-    
-    /* Modern expander */
-    .streamlit-expanderHeader {
-        font-weight: 600;
-        color: var(--primary);
-        background-color: var(--bg-light);
-        border-radius: var(--radius);
-        padding: var(--spacing-2) var(--spacing-3) !important;
-        margin: var(--spacing-2) 0 !important;
-    }
-    
-    /* Center content */
-    .center-content {
-        display: flex;
-        justify-content: center;
+    /* Visual indicators for complexity level */
+    .complexity-indicator {
+        display: inline-flex;
         align-items: center;
-        flex-direction: column;
-        margin: var(--spacing-3) 0;
+        margin-top: 5px;
+        background-color: var(--bg-light);
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
     }
     
-    /* Modern card containers */
-    .card-container {
-        background-color: var(--bg-white);
-        border-radius: var(--radius-lg);
-        padding: var(--spacing-4);
-        box-shadow: var(--shadow);
-        margin: var(--spacing-3) 0;
-        border: 1px solid var(--border-color);
+    .complexity-beginner {
+        color: #0ca678;
+        border: 1px solid #0ca678;
     }
     
-    /* Modern cache box */
-    .cache-box {
-        background-color: #cfe2ff;
-        border-left: 5px solid var(--primary);
-        padding: var(--spacing-3);
-        margin-bottom: var(--spacing-3);
-        border-radius: var(--radius);
-        font-weight: 600;
-        color: #084298;
+    .complexity-beginner:before {
+        content: "🟢";
+        margin-right: 5px;
     }
     
-    .cache-details {
-        margin-top: var(--spacing-2);
-        color: var(--text-secondary);
-        font-weight: normal;
+    .complexity-intermediate {
+        color: #f59f00;
+        border: 1px solid #f59f00;
     }
     
-    /* Modern section headers */
+    .complexity-intermediate:before {
+        content: "🟠";
+        margin-right: 5px;
+    }
+    
+    .complexity-advanced {
+        color: #e03131;
+        border: 1px solid #e03131;
+    }
+    
+    .complexity-advanced:before {
+        content: "🔴";
+        margin-right: 5px;
+    }
+    
+    /* Modern section headers with icons */
     [data-testid="stMarkdownContainer"] h3 {
         color: var(--primary);
-        font-weight: 600;
-        font-size: 1.25rem;
-        margin: var(--spacing-3) 0 var(--spacing-2) 0;
+        font-weight: 700;
+        font-size: 1.35rem;
+        margin: var(--spacing-4) 0 var(--spacing-2) 0;
         display: flex;
         align-items: center;
         letter-spacing: -0.3px;
+    }
+    
+    /* Add icons to specific section headers */
+    [data-testid="stMarkdownContainer"] h3:before {
+        font-family: "Material Icons";
+        margin-right: 8px;
+        background-color: var(--bg-light);
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: var(--primary);
+        font-size: 18px;
     }
     
     /* Modern tabs */
@@ -489,12 +528,17 @@ st.markdown("""
     /* Improve spacing for form elements */
     .stForm > div {
         padding: var(--spacing-3) !important;
+        background-color: rgba(248, 249, 250, 0.6);
+        border-radius: var(--radius);
+        margin-bottom: var(--spacing-4) !important;
+        border: 1px solid var(--border-color);
     }
     
     /* Sidebar styling */
     [data-testid="stSidebar"] {
         background-color: var(--bg-light);
         padding: var(--spacing-3);
+        border-right: 1px solid var(--border-color);
     }
     
     [data-testid="stSidebar"] > div {
@@ -505,11 +549,51 @@ st.markdown("""
         color: var(--primary);
         font-size: 1.5rem;
         margin-bottom: var(--spacing-3);
+        font-weight: 700;
+        border-bottom: 2px solid var(--border-color);
+        padding-bottom: var(--spacing-2);
     }
     
     /* Improve spacing for markdown elements */
     [data-testid="stMarkdownContainer"] > p {
         margin: var(--spacing-2) 0;
+    }
+    
+    /* Add visual separation between settings and content areas */
+    .main .block-container {
+        padding-left: var(--spacing-4) !important;
+    }
+    
+    /* Improve spacing for form elements */
+    .stForm > div > div {
+        margin-bottom: var(--spacing-3);
+    }
+    
+    /* Enhance selectbox styling */
+    .stSelectbox > div > div > div {
+        background-color: white;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .stSelectbox > div > div > div:hover {
+        border-color: var(--primary-dark);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+    
+    /* Enhance slider styling */
+    .stSlider > div {
+        padding-top: var(--spacing-2);
+        padding-bottom: var(--spacing-2);
+    }
+    
+    /* Improve checkbox styling */
+    .stCheckbox > div {
+        padding: var(--spacing-2);
+        background-color: rgba(248, 249, 250, 0.4);
+        border-radius: var(--radius);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -661,6 +745,14 @@ with col1:
         value="intermediate",
         label_visibility="collapsed"  # Hide the label but keep it for accessibility
     )
+    
+    # Add visual indicator for selected complexity level
+    complexity_indicators = {
+        "beginner": """<div class="complexity-indicator complexity-beginner">Beginner-friendly content</div>""",
+        "intermediate": """<div class="complexity-indicator complexity-intermediate">Intermediate complexity</div>""",
+        "advanced": """<div class="complexity-indicator complexity-advanced">Advanced technical content</div>"""
+    }
+    st.markdown(complexity_indicators[depth], unsafe_allow_html=True)
 
 with col2:
     # Add cache control

@@ -101,159 +101,129 @@ def logout():
     authenticator.logout()
 
 def require_auth():
-    """Require authentication before proceeding."""
+    """
+    Require authentication to access the app.
+    Returns the user's name and username if authenticated.
+    """
+    # Check if the user is already authenticated
+    if "authenticated" in st.session_state and st.session_state.authenticated:
+        return st.session_state.name, st.session_state.username
+    
+    # Create a clean login interface
     st.markdown("""
     <style>
-        /* Modern login container */
-        .login-container {
-            max-width: 400px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            animation: float-in 0.5s ease-out;
-        }
-        
-        /* Float in animation */
-        @keyframes float-in {
-            0% {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* Login header */
-        .login-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        
-        .login-header h1 {
-            color: #4361EE;
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        
-        .login-header p {
-            color: #6B7280;
-            font-size: 1rem;
-        }
-        
-        /* Input fields */
-        .stTextInput input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid #E5E7EB;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .stTextInput input:focus {
-            border-color: #4361EE;
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
-        }
-        
-        /* Login button */
-        .stButton button {
-            width: 100%;
-            background-color: #4361EE;
-            color: white;
-            padding: 0.75rem 1rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .stButton button:hover {
-            background-color: #3A56D4;
-            transform: translateY(-2px);
-        }
-        
-        /* Error message */
-        .stAlert {
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            animation: shake 0.5s ease-in-out;
-        }
-        
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-5px); }
-            75% { transform: translateX(5px); }
-        }
-        
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            .login-container {
-                background: #1E1E1E;
-            }
-            .login-header h1 {
-                color: #90CAF9;
-            }
-            .login-header p {
-                color: #E0E0E0;
-            }
-            .stTextInput input {
-                background-color: #2D2D2D;
-                color: #E0E0E0;
-                border-color: #555;
-            }
-            .stTextInput input:focus {
-                border-color: #90CAF9;
-            }
-        }
+    /* Center the entire app content */
+    .main .block-container {
+        max-width: 100%;
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
+    
+    /* Hide Streamlit elements we don't need */
+    .stApp header {
+        display: none;
+    }
+    
+    /* Welcome title styling */
+    .welcome-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #4361EE;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    /* Custom styling for the input fields */
+    .stTextInput > div > div > input {
+        max-width: 300px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        border: 1px solid #E5E7EB;
+        border-radius: 6px;
+        background-color: #F9FAFB;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #4361EE;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+    }
+    
+    /* Custom styling for the button */
+    .stButton > button {
+        max-width: 300px;
+        background-color: #4361EE;
+        color: white;
+        font-weight: 500;
+        border-radius: 6px;
+        padding: 0.6rem 1rem;
+        border: none;
+    }
+    
+    .stButton > button:hover {
+        background-color: #3A56D4;
+        border: none;
+    }
+    
+    /* Footer styling */
+    .login-footer {
+        margin-top: 1rem;
+        text-align: center;
+        font-size: 0.8rem;
+        color: #6B7280;
+    }
+    
+    /* Center all elements */
+    div[data-testid="column"] {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Make labels centered */
+    .stTextInput label {
+        text-align: center;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
     </style>
     """, unsafe_allow_html=True)
-
-    # Initialize session state
-    if 'name' not in st.session_state:
-        st.session_state.name = None
-    if 'authentication_status' not in st.session_state:
-        st.session_state.authentication_status = None
-    if 'username' not in st.session_state:
-        st.session_state.username = None
-
-    # If not authenticated, show login form
-    if not st.session_state.authentication_status:
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown("""
-            <div class="login-header">
-                <h1>👋 Welcome Back</h1>
-                <p>Please sign in to continue</p>
-            </div>
-        """, unsafe_allow_html=True)
-
-        username = st.text_input('Username', placeholder='Enter your username')
-        password = st.text_input('Password', type='password', placeholder='Enter your password')
+    
+    # Create columns for a centered form with more space on the sides
+    col1, col2, col3 = st.columns([2, 1, 2])
+    
+    with col2:
+        # Welcome title without the container box
+        st.markdown('<div class="welcome-title">Welcome</div>', unsafe_allow_html=True)
         
-        # Center the login button
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            login = st.button('Sign In')
-
-        if login:
-            if username == "admin" and password == "admin":  # Replace with your actual authentication logic
-                st.session_state.authentication_status = True
-                st.session_state.name = "Administrator"
+        # Create a simple login form
+        username = st.text_input("Username", key="username_input", placeholder="Enter your username")
+        password = st.text_input("Password", type="password", key="password_input", placeholder="Enter your password")
+        login_button = st.button("Sign In", key="login_button")
+        
+        # Add a simple footer
+        st.markdown("""
+        <div class="login-footer">
+            Technical Blog Generator • Secure Login
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Check credentials when the login button is clicked
+        if login_button:
+            # Use the authenticator to verify credentials
+            if authenticator.verify_password(username, password):
+                # Set session state to authenticated
+                st.session_state.authenticated = True
                 st.session_state.username = username
+                st.session_state.name = authenticator.credentials[username]["name"]
+                
+                # Rerun the app to reflect the authenticated state
                 st.rerun()
             else:
-                st.error('⚠️ Invalid username or password')
-
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.stop()
-
-    return st.session_state.name, st.session_state.username
+                st.error("Invalid username or password")
+    
+    # Stop execution if not authenticated
+    st.stop()
 
 def logout():
     """Logout button with improved styling."""

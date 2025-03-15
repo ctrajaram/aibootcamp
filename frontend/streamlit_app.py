@@ -729,7 +729,7 @@ with col2:
         st.caption("⚠️ Generating fresh content uses more API credits")
 
 # Add tabs for main content and chat
-main_tab, chat_tab = st.tabs(["📝 Blog Generator", "💬 Chat with Experts"])
+main_tab, chat_tab = st.tabs(["📝 Blog Generator", "💬 Chat with Research Expert"])
 
 with main_tab:
     # Add a divider
@@ -1001,7 +1001,7 @@ with chat_tab:
     # Import the chat agents
     from app.agents.chat_agents import get_agent_response
     
-    st.markdown("## 💬 Chat with AI Experts")
+    st.markdown("## 💬 Chat with Research Expert")
     
     # Check if a blog has been generated
     if "current_blog_content" not in st.session_state:
@@ -1022,28 +1022,14 @@ with chat_tab:
         # Initialize chat messages if not already done
         if "messages" not in st.session_state:
             st.session_state.messages = []
+            
+        # Initialize a key for the chat input
+        if "chat_input_key" not in st.session_state:
+            st.session_state.chat_input_key = 0
         
-        # Display chat messages
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"], avatar=message.get("avatar", None)):
-                st.markdown(message["content"])
-        
-        # Agent selection
+        # Define agent options and set Research Expert as default
         agent_options = ["Research Expert", "Content Editor", "Technical Reviewer", "SEO Specialist"]
-        if "selected_agent" not in st.session_state:
-            st.session_state.selected_agent = agent_options[0]
-        
-        # Create columns for agent selection and description
-        col1, col2 = st.columns([1, 3])
-        
-        with col1:
-            selected_agent = st.selectbox(
-                "Select an expert:",
-                agent_options,
-                index=agent_options.index(st.session_state.selected_agent),
-                key="agent_selector"
-            )
-            st.session_state.selected_agent = selected_agent
+        default_agent = "Research Expert"
         
         # Display agent descriptions
         agent_descriptions = {
@@ -1060,15 +1046,27 @@ with chat_tab:
             "SEO Specialist": "📈"
         }
         
-        with col2:
-            st.markdown(f"""
-            <div style="background-color: #F8FAFC; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #4361EE;">
-                <p style="margin: 0; font-size: 0.95rem;"><strong>{agent_icons[selected_agent]} {selected_agent}:</strong> {agent_descriptions[selected_agent]}</p>
-            </div>
-            """, unsafe_allow_html=True)
+        # Display Research Expert description
+        st.markdown(f"""
+        <div style="background-color: #F8FAFC; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #4361EE; margin-bottom: 15px;">
+            <p style="margin: 0; font-size: 0.95rem;"><strong>{agent_icons[default_agent]} {default_agent}:</strong> {agent_descriptions[default_agent]}</p>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Chat input
-        if prompt := st.chat_input(f"Ask the {selected_agent} a question..."):
+        # Display chat messages
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"], avatar=message.get("avatar", None)):
+                st.markdown(message["content"])
+        
+        # Add a button to clear chat history with improved styling
+        st.markdown("<div style='display: flex; justify-content: center; margin-top: 20px;'>", unsafe_allow_html=True)
+        if st.button("🗑️ Clear Chat History", type="secondary"):
+            st.session_state.messages = []
+            st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+        
+        # Use Streamlit's native chat_input which appears at the bottom
+        if prompt := st.chat_input("Ask the Research Expert a question...", key=f"chat_input_{st.session_state.chat_input_key}"):
             # Add user message to chat history
             st.session_state.messages.append({"role": "user", "content": prompt})
             
@@ -1076,11 +1074,11 @@ with chat_tab:
             with st.chat_message("user"):
                 st.markdown(prompt)
             
-            # Get response from selected agent
-            with st.chat_message("assistant", avatar=agent_icons[selected_agent]):
-                with st.spinner(f"Consulting {selected_agent}..."):
+            # Get response from Research Expert
+            with st.chat_message("assistant", avatar=agent_icons[default_agent]):
+                with st.spinner(f"Consulting {default_agent}..."):
                     response = get_agent_response(
-                        selected_agent, 
+                        default_agent, 
                         prompt, 
                         st.session_state.current_blog_content
                     )
@@ -1090,12 +1088,9 @@ with chat_tab:
             st.session_state.messages.append({
                 "role": "assistant", 
                 "content": response,
-                "avatar": agent_icons[selected_agent]
+                "avatar": agent_icons[default_agent]
             })
-        
-        # Add a button to clear chat history with improved styling
-        st.markdown("<div style='display: flex; justify-content: center; margin-top: 20px;'>", unsafe_allow_html=True)
-        if st.button("🗑️ Clear Chat History", type="secondary"):
-            st.session_state.messages = []
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True) 
+            
+            # Increment the key to create a new input widget on next rerun
+            st.session_state.chat_input_key += 1
+            st.rerun() 

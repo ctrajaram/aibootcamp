@@ -73,7 +73,7 @@ class SimpleAuthenticator:
                     st.session_state.authenticated = True
                     st.session_state.username = username
                     st.session_state.name = self.credentials[username]["name"]
-                    st.success(f"Welcome, {self.credentials[username]['name']}!")
+                    st.success(f"Welcome to TechMuse, {self.credentials[username]['name']}!")
                     st.rerun()
                 else:
                     st.error("Invalid username or password")
@@ -204,7 +204,7 @@ def require_auth():
         # Add a simple footer
         st.markdown("""
         <div class="login-footer">
-            Technical Blog Generator • Secure Login
+            Secure Login
         </div>
         """, unsafe_allow_html=True)
         

@@ -23,7 +23,6 @@ def get_credentials():
 
 # Get the credentials
 ADMIN_USERNAME, ADMIN_PASSWORD = get_credentials()
-
 # Simple authentication without external dependencies
 class SimpleAuthenticator:
     def __init__(self):

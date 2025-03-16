@@ -7,7 +7,7 @@ pydantic>=1.10.0,<2.0.0
 streamlit>=1.22.0
 
 # Agent system dependencies
-crewai==0.27.0
+crewai<0.20.0
 langchain>=0.1.10,<0.2.0
 langchain-community>=0.0.38,<0.1.0
 

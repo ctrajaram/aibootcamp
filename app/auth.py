@@ -8,9 +8,11 @@ from dotenv import load_dotenv
 # Get credentials from environment variables or Streamlit secrets
 try:
     # Fall back to environment variables (for local development)
-    load_dotenv()
-    ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "default_username")
-    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "default_password")
+    ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
+    ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
+    # load_dotenv()
+    # ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "default_username")
+    # ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "default_password")
 except Exception as e:
     print(e)
 # Simple authentication without external dependencies

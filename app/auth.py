@@ -3,19 +3,42 @@ import os
 from pathlib import Path
 import pickle
 import hashlib
+from dotenv import load_dotenv
 
+# Get credentials from environment variables or Streamlit secrets
+try:
+    # Fall back to environment variables (for local development)
+    load_dotenv()
+    ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "default_username")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "default_password")
+except Exception as e:
+    print(e)
 # Simple authentication without external dependencies
 class SimpleAuthenticator:
     def __init__(self):
-        """Initialize the authenticator with default credentials."""
+        """Initialize the authenticator with credentials from environment or file."""
         self.credentials_path = Path("auth_credentials.pkl")
         
-        # Create default credentials if they don't exist
-        if not self.credentials_path.exists():
-            self.create_default_credentials()
+        # Check if we're in production (environment variables or secrets set)
+        self.is_production = (ADMIN_USERNAME != "default_username" and 
+                             ADMIN_PASSWORD != "default_password")
         
-        # Load credentials
-        self.credentials = self.load_credentials()
+        if self.is_production:
+            # In production, use environment variables/secrets
+            self.credentials = {
+                ADMIN_USERNAME: {
+                    "name": "Administrator",
+                    "password": self.hash_password(ADMIN_PASSWORD),
+                    "email": "admin@example.com"
+                }
+            }
+        else:
+            # In development, use the file
+            if not self.credentials_path.exists():
+                self.create_default_credentials()
+            
+            # Load credentials
+            self.credentials = self.load_credentials()
     
     def create_default_credentials(self):
         """Create default credentials file with admin user."""
@@ -36,11 +59,16 @@ class SimpleAuthenticator:
             return pickle.load(f)
     
     def hash_password(self, password):
-        """Create a simple hash of the password."""
+        """Hash a password for storing."""
         return hashlib.sha256(password.encode()).hexdigest()
     
     def verify_password(self, username, password):
         """Verify if the password is correct for the given username."""
+        # In production, check against environment variables/secrets
+        if self.is_production and username == ADMIN_USERNAME:
+            return self.hash_password(password) == self.hash_password(ADMIN_PASSWORD)
+        
+        # Otherwise check against the credentials file
         if username not in self.credentials:
             return False
         

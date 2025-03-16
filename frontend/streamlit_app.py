@@ -898,6 +898,34 @@ st.markdown("""
         font-weight: 700;
         color: var(--primary);
     }
+    /* Reduce space between title and agent buttons */
+.agent-selector-title {
+    font-weight: 500;
+    margin-bottom: 5px !important; /* Reduced from 10px */
+    color: var(--text-primary);
+}
+
+/* Ensure the container doesn't add extra space */
+.agent-selector-container {
+    margin-top: 0 !important;
+    margin-bottom: 15px !important; /* Reduced from 20px */
+}
+
+/* Remove any extra padding that might be added by Streamlit */
+[data-testid="stVerticalBlock"] > div:has(.agent-selector-title) {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Target the specific gap between title and buttons */
+.agent-selector-title + div {
+    margin-top: 5px !important;
+}
+
+/* Make sure the expert buttons container doesn't have extra space */
+.expert-buttons-container {
+    margin-top: 0 !important;
+}        
 </style>
 """, unsafe_allow_html=True)
 

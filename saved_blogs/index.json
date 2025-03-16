@@ -981,6 +981,19 @@
         ]
       },
       "preview": "```markdown\n# Understanding Docker Commands for Intermediate Users\n\n## 1. Introduction\n\nIn the ever-evolving landscape of software development and deployment, Docker has emerged as a pivotal tool that..."
+    },
+    {
+      "id": "d43ed527-0b56-4a04-b7fb-4ae0c4287881",
+      "title": "Docker",
+      "created_at": "2025-03-16T15:36:54.218546",
+      "metadata": {
+        "topic": "Docker",
+        "depth": "intermediate",
+        "keywords": [
+          "commands"
+        ]
+      },
+      "preview": "```markdown\n# Understanding Docker Commands for Intermediate Users\n\n## 1. Introduction\n\nIn the ever-evolving landscape of software development and deployment, Docker has emerged as a pivotal tool that..."
     }
   ]
 }

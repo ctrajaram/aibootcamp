@@ -922,7 +922,6 @@ st.markdown('<div class="center-content" style="margin-bottom: 0;">', unsafe_all
 st.markdown('<div class="main-header">✨ TechMuse</div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="description">
-    Generate comprehensive technical blog posts with AI assistance. 
     <span style="background: linear-gradient(90deg, #4361EE, #7209B7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 600;">
         Create accurate, well-researched content with just a few clicks.
     </span>

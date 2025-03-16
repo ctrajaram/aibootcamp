@@ -2,7 +2,7 @@ import streamlit as st
 
 # Configure the app - MUST be the first Streamlit command
 st.set_page_config(
-    page_title="Technical Blog Generator",
+    page_title="TechMuse",
     page_icon="📝",
     layout="wide"
 )
@@ -886,6 +886,18 @@ st.markdown("""
         font-weight: 600 !important;
         border-left: 4px solid #0d6efd !important;
     }
+
+    /* Change the Welcome text to TechMuse */
+    h1:contains("Welcome") {
+        font-size: 0;  /* Hide the original text */
+    }
+
+    h1:contains("Welcome")::after {
+        content: "✨ TechMuse";
+        font-size: 2.2rem;  /* Restore font size for new text */
+        font-weight: 700;
+        color: var(--primary);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -907,7 +919,7 @@ if not (os.getenv("GOOGLE_API_KEY") and os.getenv("GOOGLE_CSE_ID")):
 
 # Title and description in centered container
 st.markdown('<div class="center-content" style="margin-bottom: 0;">', unsafe_allow_html=True)
-st.markdown('<div class="main-header">✨ Technical Blog Generator</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">✨ TechMuse</div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="description">
     Generate comprehensive technical blog posts with AI assistance. 
@@ -916,7 +928,6 @@ st.markdown("""
     </span>
 </div>
 """, unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
 
 # Add a small space after the description
 st.markdown('<div style="margin-bottom: 0.5rem;"></div>', unsafe_allow_html=True)
@@ -1564,33 +1575,47 @@ with chat_tab:
         /* This will be used to control the column layout based on screen size */
         @media (max-width: 576px) {
             .expert-buttons-container {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
                 gap: 8px;
+                justify-content: center;
+            }
+            
+            .expert-buttons-container > div {
+                flex: 1 1 calc(50% - 8px);
+                min-width: calc(50% - 8px);
+                max-width: calc(50% - 8px);
             }
         }
         
         @media (min-width: 577px) {
             .expert-buttons-container {
-                display: grid;
-                grid-template-columns: 1fr 1fr 1fr 1fr;
+                display: flex;
+                flex-direction: row;
                 gap: 8px;
+                justify-content: center;
+            }
+            
+            .expert-buttons-container > div {
+                flex: 1;
+                min-width: 0;
+                max-width: none;
             }
         }
         </style>
         <div class="expert-buttons-container">
         """, unsafe_allow_html=True)
         
-        # Create a button for each agent
+        # Create a button for each agent in a single row
+        cols = st.columns(len(agent_options))
+        
         for i, agent in enumerate(agent_options):
             # Determine if this agent is selected
             is_selected = st.session_state.selected_agent == agent
             
-            # Create columns that will adapt based on screen size
-            cols = st.columns([1])
-            
             # Create the button with the appropriate styling
-            if cols[0].button(
+            if cols[i].button(
                 f"{agent_icons[agent]} {agent}", 
                 key=f"agent_button_{agent.replace(' ', '_')}",
                 use_container_width=True,

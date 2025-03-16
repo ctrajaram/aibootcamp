@@ -5,16 +5,24 @@ import pickle
 import hashlib
 from dotenv import load_dotenv
 
-# Get credentials from environment variables or Streamlit secrets
-try:
-    # Fall back to environment variables (for local development)
-    ADMIN_USERNAME = st.secrets["ADMIN_USERNAME"]
-    ADMIN_PASSWORD = st.secrets["ADMIN_PASSWORD"]
-    # load_dotenv()
-    # ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "default_username")
-    # ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "default_password")
-except Exception as e:
-    print(e)
+# Load environment variables
+load_dotenv()
+
+# Get credentials - prioritize Streamlit secrets
+def get_credentials():
+    # First try Streamlit secrets
+    try:
+        admin_username = st.secrets["ADMIN_USERNAME"]
+        admin_password = st.secrets["ADMIN_PASSWORD"]
+        return admin_username, admin_password
+    except (KeyError, TypeError):
+        # Fall back to environment variables
+        admin_username = os.getenv("ADMIN_USERNAME", "default_username")
+        admin_password = os.getenv("ADMIN_PASSWORD", "default_password")
+        return admin_username, admin_password
+
+# Get the credentials
+ADMIN_USERNAME, ADMIN_PASSWORD = get_credentials()
 # Simple authentication without external dependencies
 class SimpleAuthenticator:
     def __init__(self):

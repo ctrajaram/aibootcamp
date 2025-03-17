@@ -127,6 +127,15 @@ import re
 # Load environment variables
 load_dotenv()
 
+# Add an environment variable to indicate we're in a Streamlit deployment
+if "STREAMLIT_RUNTIME_ENVIRONMENT" in os.environ:
+    os.environ["STREAMLIT_DEPLOYMENT"] = "1"
+
+# Check if running on Streamlit Cloud
+if os.getenv("STREAMLIT_RUNTIME_ENVIRONMENT") == "cloud":
+    os.environ["STREAMLIT_DEPLOYMENT"] = "1"
+    print("Running on Streamlit Cloud - Setting STREAMLIT_DEPLOYMENT=1")
+
 # Define paths for saved blogs
 SAVED_BLOGS_DIR = Path("saved_blogs")
 SAVED_BLOGS_INDEX = SAVED_BLOGS_DIR / "index.json"
@@ -385,11 +394,14 @@ st.markdown("""
         font-weight: 500;
         transition: all 0.2s ease;
         box-shadow: none;
+        width: auto !important;
+        height: auto !important;
     }
     
     .stButton button[data-testid="baseButton-secondary"]:has(div:contains("Sign Out")):hover {
         background-color: #e9ecef;
         color: #495057;
+        transform: translateY(-1px);
     }
     
     /* Generate content button - make it stand out with accent color */
@@ -1130,10 +1142,21 @@ with st.sidebar:
         """, unsafe_allow_html=True)
         
         # Display user info and logout button
-        st.markdown(f"**Logged in as:** {name}")
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; margin-bottom: 15px;">
+            <div style="background-color: #4361EE; color: white; width: 32px; height: 32px; border-radius: 50%; 
+                 display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold;">
+                {name[0].upper()}
+            </div>
+            <div>
+                <div style="font-weight: 500;">{name}</div>
+                <div style="font-size: 0.8rem; color: #6c757d;">{username}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Create a dedicated logout button with a unique key and Bootstrap styling
-        if st.button("Sign Out", key="sidebar_logout_button"):
+        if st.button("🚪 Sign Out", key="sidebar_logout_button"):
             # Call the logout function
             logout()
             # Clear all session state
@@ -1141,6 +1164,13 @@ with st.sidebar:
                 del st.session_state[key]
             # Force a rerun to redirect to login page
             st.rerun()
+            
+        # Add admin page link for admin users
+        from app.auth import authenticator
+        if authenticator.is_admin(username):
+            if st.button("👑 Admin Dashboard", key="admin_dashboard_button"):
+                st.session_state.show_admin = True
+                st.rerun()
     
     # Apply compact view styling by default
     st.markdown("""
@@ -1187,6 +1217,15 @@ with st.sidebar:
         }
     </style>
     """, unsafe_allow_html=True)
+
+# Check if we should show the admin page
+if "show_admin" in st.session_state and st.session_state.show_admin:
+    authenticator.show_admin_page()
+    # Add a back button
+    if st.button("← Back to App", key="back_to_app_button"):
+        st.session_state.show_admin = False
+        st.rerun()
+    st.stop()
 
 # Input section in a card-like container
 # Removing the card container div
@@ -1512,7 +1551,7 @@ with chat_tab:
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div style="background-color: #ECFDF5; padding: 15px; border-radius: 8px; border-left: 5px solid #10B981; margin-bottom: 15px;">
+        <div style="background-color: #ECFDF5; padding: 10px 15px; border-radius: 8px; border-left: 3px solid #4361EE; margin-bottom: 15px;">
             <h3 style="margin-top: 0; color: #059669; font-size: 1.1rem;">📄 Currently discussing</h3>
             <p style="margin-bottom: 0; font-weight: 500;">{st.session_state.current_blog_title}</p>
         </div>

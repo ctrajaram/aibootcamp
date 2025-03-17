@@ -32,6 +32,8 @@ def get_db_path():
     """Get the database path based on environment."""
     # In production, use a path that will be persisted in the deployment
     if os.getenv("STREAMLIT_DEPLOYMENT", "0") == "1":
+        # Use the .streamlit folder which is persistent in Streamlit Cloud
+        os.makedirs(os.path.join(os.path.expanduser("~"), ".streamlit"), exist_ok=True)
         return os.path.join(os.path.expanduser("~"), ".streamlit", "techmuse.db")
     else:
         # In development, use a local file

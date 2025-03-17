@@ -131,6 +131,11 @@ load_dotenv()
 if "STREAMLIT_RUNTIME_ENVIRONMENT" in os.environ:
     os.environ["STREAMLIT_DEPLOYMENT"] = "1"
 
+# Check if running on Streamlit Cloud
+if os.getenv("STREAMLIT_RUNTIME_ENVIRONMENT") == "cloud":
+    os.environ["STREAMLIT_DEPLOYMENT"] = "1"
+    print("Running on Streamlit Cloud - Setting STREAMLIT_DEPLOYMENT=1")
+
 # Define paths for saved blogs
 SAVED_BLOGS_DIR = Path("saved_blogs")
 SAVED_BLOGS_INDEX = SAVED_BLOGS_DIR / "index.json"

@@ -153,14 +153,41 @@ class HallucinationChecker:
                     {"role": "system", "content": system_message},
                     {"role": "user", "content": user_message}
                 ],
-                temperature=0,
-                response_format={"type": "json_object"}
+                temperature=0
             )
             
             # Extract and parse the evaluation
             evaluation_text = completion.choices[0].message.content
-            evaluation = json.loads(evaluation_text)
-            print(f"OpenAI evaluation: {evaluation}")
+            print(f"Raw evaluation: {evaluation_text}")
+            
+            # Try to parse JSON from the response
+            try:
+                # Find JSON-like content in the response
+                import re
+                json_match = re.search(r'\{.*\}', evaluation_text, re.DOTALL)
+                if json_match:
+                    json_str = json_match.group(0)
+                    evaluation = json.loads(json_str)
+                else:
+                    # Fallback if no JSON is found
+                    evaluation = {
+                        "faithfulness_score": 0.5,
+                        "answer_relevancy_score": 0.5,
+                        "has_hallucination": True,
+                        "confidence": "Medium",
+                        "explanation": "Could not parse evaluation properly."
+                    }
+            except json.JSONDecodeError:
+                print("Failed to parse JSON from response")
+                evaluation = {
+                    "faithfulness_score": 0.5,
+                    "answer_relevancy_score": 0.5,
+                    "has_hallucination": True,
+                    "confidence": "Medium",
+                    "explanation": "Could not parse evaluation properly."
+                }
+                
+            print(f"Parsed evaluation: {evaluation}")
             
             # Generate appropriate warning message
             if evaluation["has_hallucination"]:

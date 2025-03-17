@@ -123,7 +123,8 @@ class HallucinationChecker:
                 "has_hallucination": True,
                 "confidence": "Low",
                 "explanation": "No context available to verify response",
-                "warning": "⚠️ Unable to verify - No source information available"
+                "warning": "⚠️ Unable to verify - No source information available",
+                "sources": sources  # Include sources in the output
             }
         
         try:
@@ -222,7 +223,8 @@ Return your evaluation in JSON format."""
                 "confidence": evaluation.get("confidence", "Medium"),
                 "explanation": evaluation.get("explanation", "No explanation provided"),
                 "hallucinated_statements": evaluation.get("hallucinated_statements", []),
-                "warning": warning
+                "warning": warning,
+                "sources": sources  # Include sources in the output
             }
             
             print(f"Hallucination assessment: {warning}")
@@ -240,7 +242,8 @@ Return your evaluation in JSON format."""
                 "confidence": "Low",
                 "explanation": f"Error evaluating response: {str(e)}",
                 "hallucinated_statements": ["Unable to evaluate due to error"],
-                "warning": "⚠️ ERROR: Unable to verify response due to technical issues"
+                "warning": "⚠️ ERROR: Unable to verify response due to technical issues",
+                "sources": sources  # Include sources in the output
             }
     
     def format_evaluation_results(self, evaluation: Dict[str, Any]) -> str:
@@ -275,6 +278,13 @@ Return your evaluation in JSON format."""
             result += f"\n**Potentially Unsupported Statements:**\n"
             for statement in hallucinated_statements:  # Show all statements
                 result += f"- {statement}\n"
+        
+        # Add sources
+        sources = evaluation.get("sources", [])
+        if sources:
+            result += f"\n**Sources Checked:**\n"
+            for i, source in enumerate(sources, 1):
+                result += f"{i}. {source}\n"
         
         print(f"Formatted results: {result[:100]}...")
         return result

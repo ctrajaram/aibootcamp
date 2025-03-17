@@ -273,11 +273,8 @@ Return your evaluation in JSON format."""
         hallucinated_statements = evaluation.get("hallucinated_statements", [])
         if hallucinated_statements and len(hallucinated_statements) > 0 and hallucinated_statements[0] != "Unable to identify specific statements":
             result += f"\n**Potentially Unsupported Statements:**\n"
-            for i, statement in enumerate(hallucinated_statements[:3]):  # Limit to 3 statements
+            for statement in hallucinated_statements:  # Show all statements
                 result += f"- {statement}\n"
-            
-            if len(hallucinated_statements) > 3:
-                result += f"- _(and {len(hallucinated_statements) - 3} more...)_\n"
         
         print(f"Formatted results: {result[:100]}...")
         return result

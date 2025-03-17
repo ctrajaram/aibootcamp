@@ -375,53 +375,39 @@ st.markdown("""
     }
     
     /* Sign out button specific styling */
-    button[kind="secondary"], 
-    [data-testid="baseButton-secondary"] {
-        background-color: var(--secondary) !important;
-        color: white !important;
-        font-weight: 500 !important;
-        border-radius: 8px !important;
-        width: 200px !important;
-        height: 44px !important;
+    .stButton button[data-testid="baseButton-secondary"]:has(div:contains("Sign Out")) {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: none;
     }
     
-    button[kind="secondary"]:hover, 
-    [data-testid="baseButton-secondary"]:hover {
-        background-color: #5c636a !important;
-        transform: translateY(-2px) !important;
-        box-shadow: var(--shadow) !important;
-    }
-    
-    button[kind="secondary"]:active, 
-    [data-testid="baseButton-secondary"]:active {
-        transform: translateY(0) !important;
-        box-shadow: var(--shadow-sm) !important;
+    .stButton button[data-testid="baseButton-secondary"]:has(div:contains("Sign Out")):hover {
+        background-color: #e9ecef;
+        color: #495057;
     }
     
     /* Generate content button - make it stand out with accent color */
-    button[data-testid="baseButton-primary"],
-    button[key="generate_content_button"] {
-        background-color: var(--accent) !important;
-        width: 220px !important;
-        height: 48px !important;
-        box-shadow: var(--shadow) !important;
-        font-size: 1.1rem !important;
-        font-weight: 600 !important;
-        position: relative;
-        overflow: hidden;
-        border-radius: 8px !important;
+    .stButton button[data-testid="baseButton-primary"]:has(div:contains("Generate Content")) {
+        background: linear-gradient(90deg, #4361EE, #7209B7);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
     
-    button[data-testid="baseButton-primary"]:hover,
-    button[key="generate_content_button"]:hover {
-        background-color: var(--accent-light) !important;
-        transform: translateY(-3px) !important;
-        box-shadow: 0 8px 15px rgba(0,0,0,0.2) !important;
-    }
-    
-    button[data-testid="baseButton-primary"]:active,
-    button[key="generate_content_button"]:active {
-        transform: translateY(-1px) !important;
+    .stButton button[data-testid="baseButton-primary"]:has(div:contains("Generate Content")):hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
     }
     
     /* Modern download button */
@@ -1023,7 +1009,67 @@ st.markdown("""
 /* Make sure the expert buttons container doesn't have extra space */
 .expert-buttons-container {
     margin-top: 0 !important;
-}        
+}
+
+    /* Modern expert tabs */
+    .expert-buttons-container {
+        margin-bottom: 1rem;
+    }
+    
+    .expert-buttons-container .stButton button {
+        border-radius: 6px;
+        padding: 0.3rem 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: none;
+    }
+    
+    .expert-buttons-container .stButton button[data-testid="baseButton-primary"] {
+        background: linear-gradient(90deg, #4361EE, #3B82F6);
+        border: none;
+    }
+    
+    .expert-buttons-container .stButton button[data-testid="baseButton-secondary"] {
+        background-color: #f8f9fa;
+        color: #4B5563;
+        border: 1px solid #E5E7EB;
+    }
+    
+    .expert-buttons-container .stButton button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* Clear chat history button */
+    .stButton button[data-testid="baseButton-secondary"]:has(div:contains("Clear Chat History")) {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        box-shadow: none;
+    }
+    
+    /* Make tabs more modern */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.9rem;
+        font-weight: 500;
+        border-radius: 6px 6px 0 0;
+    }
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background-color: #f0f7ff;
+        border-bottom: 2px solid #3B82F6;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1461,7 +1507,7 @@ with chat_tab:
         st.markdown("""
         <div style="background-color: #EFF6FF; padding: 20px; border-radius: 12px; border-left: 5px solid #3B82F6; margin: 20px 0;">
             <h3 style="margin-top: 0; color: #2563EB; font-size: 1.1rem;">✨ Getting Started</h3>
-            <p style="margin-bottom: 0;">Generate a blog post first to chat with experts about it!</p>
+            <p style="margin: 0; font-size: 0.95rem;">Generate a blog post first to chat with experts about it!</p>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -1512,109 +1558,18 @@ with chat_tab:
             gap: 0;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .agent-selector-title {
             font-weight: 500;
-            margin-bottom: 10px;
+            margin-bottom: 5px !important;
             color: var(--text-primary);
-        }
-        
-        .agent-button {
-            background-color: white;
-            border: none;
-            border-bottom: 1px solid #e9ecef;
-            padding: 12px 15px;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            color: var(--text-primary);
-        }
-        
-        .agent-button:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .agent-button:first-child {
-            border-top-left-radius: 8px;
-            border-top-right-radius: 8px;
-        }
-        
-        .agent-button:last-child {
-            border-bottom: none;
-            border-bottom-left-radius: 8px;
-            border-bottom-right-radius: 8px;
-        }
-        
-        .agent-button.selected {
-            background-color: #e9f2ff;
-            font-weight: 600;
-            border-left: 4px solid #0d6efd;
-        }
-        
-        .agent-button .icon {
-            margin-right: 10px;
-            font-size: 18px;
+            font-size: 0.9rem;
         }
         </style>
         """, unsafe_allow_html=True)
-        
-        # Create callback functions to update the selected agent
-        def set_agent(agent_name):
-            st.session_state.selected_agent = agent_name
-            st.rerun()  # Force a rerun to update the UI
-        
-        # Add a clear title for the agent selector
-        st.markdown("<div class='agent-selector-title'>Click an Expert to Chat:</div>", unsafe_allow_html=True)
-        
-        # Create custom buttons for agent selection
-        st.markdown("<div class='agent-selector-container'>", unsafe_allow_html=True)
-        
-        # Responsive layout - use 2 columns on small screens, 4 on larger screens
-        # Check if screen width is small (like iPhone SE)
-        st.markdown("""
-        <style>
-        /* This will be used to control the column layout based on screen size */
-        @media (max-width: 576px) {
-            .expert-buttons-container {
-                display: flex;
-                flex-direction: row;
-                flex-wrap: wrap;
-                gap: 8px;
-                justify-content: center;
-            }
-            
-            .expert-buttons-container > div {
-                flex: 1 1 calc(50% - 8px);
-                min-width: calc(50% - 8px);
-                max-width: calc(50% - 8px);
-            }
-        }
-        
-        @media (min-width: 577px) {
-            .expert-buttons-container {
-                display: flex;
-                flex-direction: row;
-                gap: 8px;
-                justify-content: center;
-            }
-            
-            .expert-buttons-container > div {
-                flex: 1;
-                min-width: 0;
-                max-width: none;
-            }
-        }
-        </style>
-        <div class="expert-buttons-container">
-        """, unsafe_allow_html=True)
-        
+{{ ... }}
         # Create a button for each agent in a single row
         cols = st.columns(len(agent_options))
         

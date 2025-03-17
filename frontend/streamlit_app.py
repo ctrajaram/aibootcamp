@@ -1512,7 +1512,7 @@ with chat_tab:
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
-        <div style="background-color: #ECFDF5; padding: 15px; border-radius: 12px; border-left: 5px solid #10B981; margin-bottom: 20px;">
+        <div style="background-color: #ECFDF5; padding: 15px; border-radius: 8px; border-left: 5px solid #10B981; margin-bottom: 15px;">
             <h3 style="margin-top: 0; color: #059669; font-size: 1.1rem;">📄 Currently discussing</h3>
             <p style="margin-bottom: 0; font-weight: 500;">{st.session_state.current_blog_title}</p>
         </div>
@@ -1569,7 +1569,7 @@ with chat_tab:
         }
         </style>
         """, unsafe_allow_html=True)
-{{ ... }}
+        
         # Create a button for each agent in a single row
         cols = st.columns(len(agent_options))
         

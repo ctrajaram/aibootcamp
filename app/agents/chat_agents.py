@@ -23,7 +23,7 @@ def create_research_expert():
         verbose=True,
         allow_delegation=False,
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.4
         }
     )
@@ -43,7 +43,7 @@ def create_editor_agent():
         verbose=True,
         allow_delegation=False,
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.3
         }
     )
@@ -63,7 +63,7 @@ def create_technical_reviewer():
         verbose=True,
         allow_delegation=False,
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.2
         }
     )
@@ -83,7 +83,7 @@ def create_seo_specialist():
         verbose=True,
         allow_delegation=False,
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.3
         }
     )
@@ -143,7 +143,7 @@ def get_agent_response(agent_type, query, blog_content=None):
         
         # Generate response using the OpenAI API directly
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": prompt},
                 {"role": "user", "content": query}

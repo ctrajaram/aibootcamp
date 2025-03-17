@@ -28,7 +28,7 @@ def create_researcher_agent() -> Agent:
         allow_delegation=False,
         # Configure the language model
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.4,  # Lower temperature for factual research
             "request_timeout": 120
         }
@@ -50,7 +50,7 @@ def create_outline_agent() -> Agent:
         allow_delegation=False,
         # Configure the language model
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.5,
             "request_timeout": 120
         }
@@ -72,7 +72,7 @@ def create_writer_agent() -> Agent:
         allow_delegation=False,
         # Configure the language model
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.7,  # Higher temperature for creative writing
             "request_timeout": 120
         }
@@ -94,7 +94,7 @@ def create_editor_agent() -> Agent:
         allow_delegation=False,
         # Configure the language model
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.3,  # Lower temperature for precise editing
             "request_timeout": 120
         }
@@ -117,7 +117,7 @@ def create_qa_agent() -> Agent:
         allow_delegation=False,
         # Configure the language model
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.2,  # Very low temperature for critical evaluation
             "request_timeout": 120
         }

@@ -1,4 +1,91 @@
 import streamlit as st
+import markdown
+
+def markdown_to_html(md_text, title):
+    html_content = markdown.markdown(md_text, extensions=['fenced_code', 'tables'])
+    
+    # Create a complete HTML document with basic styling
+    html_doc = f"""<!DOCTYPE html>
+    <html>
+    <head>
+        <title>{title}</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }}
+            h1, h2, h3, h4, h5, h6 {{
+                color: #0066cc;
+                margin-top: 24px;
+                margin-bottom: 16px;
+            }}
+            h1 {{
+                font-size: 2em;
+                border-bottom: 1px solid #eaecef;
+                padding-bottom: 0.3em;
+            }}
+            h2 {{
+                font-size: 1.5em;
+                border-bottom: 1px solid #eaecef;
+                padding-bottom: 0.3em;
+            }}
+            code {{
+                background-color: #f6f8fa;
+                border-radius: 3px;
+                font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+                padding: 0.2em 0.4em;
+                font-size: 85%;
+            }}
+            pre {{
+                background-color: #f6f8fa;
+                border-radius: 3px;
+                font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+                padding: 16px;
+                overflow: auto;
+            }}
+            pre code {{
+                background-color: transparent;
+                padding: 0;
+            }}
+            blockquote {{
+                border-left: 4px solid #ddd;
+                padding-left: 16px;
+                color: #666;
+                margin-left: 0;
+            }}
+            img {{
+                max-width: 100%;
+            }}
+            table {{
+                border-collapse: collapse;
+                width: 100%;
+                margin-bottom: 16px;
+            }}
+            table, th, td {{
+                border: 1px solid #ddd;
+            }}
+            th, td {{
+                padding: 8px 16px;
+                text-align: left;
+            }}
+            th {{
+                background-color: #f6f8fa;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>{title}</h1>
+        {html_content}
+    </body>
+    </html>"""
+    
+    return html_doc
 
 # Configure the app - MUST be the first Streamlit command
 st.set_page_config(
@@ -31,7 +118,6 @@ import json
 import datetime
 from dotenv import load_dotenv
 from pydantic import ValidationError
-import markdown
 import base64
 import uuid
 from pathlib import Path
@@ -89,6 +175,18 @@ def save_blog(title: str, content: str, metadata: Dict) -> str:
         json.dump(index, f, indent=2)
     
     return blog_id
+
+# Initialize all session state variables
+if 'content_generated' not in st.session_state:
+    st.session_state.content_generated = False
+if 'current_result' not in st.session_state:
+    st.session_state.current_result = None
+if 'edited_content' not in st.session_state:
+    st.session_state.edited_content = ""
+if 'current_blog_content' not in st.session_state:
+    st.session_state.current_blog_content = ""
+if 'current_blog_title' not in st.session_state:
+    st.session_state.current_blog_title = ""
 
 # Custom CSS for styling
 st.markdown("""
@@ -1098,374 +1196,257 @@ with main_tab:
     # Add a divider
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # Create a single button and store its state - centered with Bootstrap styling
+    # Create a single button and store its state
     st.markdown('<div class="center-content">', unsafe_allow_html=True)
     generate_clicked = st.button("🚀 Generate Content", key="generate_content_button")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    if generate_clicked:
+    # Check if we should display content
+    if generate_clicked or st.session_state.content_generated:
         if topic:
-            # Create a simple progress bar without status text
-            progress_bar = st.progress(0)
-            
-            # Add a custom loading animation
-            loading_container = st.empty()
-            loading_container.markdown("""
-            <div class="loading-animation">
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div class="dot"></div>
-                <div style="margin-left: 10px; font-weight: 500;">Generating your content...</div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Add a progress steps indicator
-            progress_steps_container = st.empty()
-            progress_steps_container.markdown("""
-            <div class="progress-container">
-                <span class="progress-label">Content Generation Progress</span>
-                <div class="progress-steps">
-                    <div class="progress-step active">Research</div>
-                    <div class="progress-step">Outline</div>
-                    <div class="progress-step">Draft</div>
-                    <div class="progress-step">Finalize</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            def update_progress(progress_value, status_message):
-                """Update the progress bar and progress steps."""
-                progress_bar.progress(progress_value)
-                
-                # Only add delay for specific transition points to reduce overall generation time
-                # while still making transitions visible
-                if progress_value in [0.25, 0.5, 0.75, 0.95]:
-                    time.sleep(1.0)  # Only delay at key transition points
-                
-                # Update progress steps based on progress value with clearer thresholds
-                if progress_value <= 0.25:
-                    step_html = """
-                    <div class="progress-container">
-                        <span class="progress-label">Content Generation Progress</span>
-                        <div class="progress-steps">
-                            <div class="progress-step active">Research</div>
-                            <div class="progress-step">Outline</div>
-                            <div class="progress-step">Draft</div>
-                            <div class="progress-step">Finalize</div>
-                        </div>
-                    </div>
-                    """
-                    loading_message = "Researching your topic..."
-                elif progress_value <= 0.5:
-                    step_html = """
-                    <div class="progress-container">
-                        <span class="progress-label">Content Generation Progress</span>
-                        <div class="progress-steps">
-                            <div class="progress-step completed">Research</div>
-                            <div class="progress-step active">Outline</div>
-                            <div class="progress-step">Draft</div>
-                            <div class="progress-step">Finalize</div>
-                        </div>
-                    </div>
-                    """
-                    loading_message = "Creating content outline..."
-                elif progress_value <= 0.75:
-                    step_html = """
-                    <div class="progress-container">
-                        <span class="progress-label">Content Generation Progress</span>
-                        <div class="progress-steps">
-                            <div class="progress-step completed">Research</div>
-                            <div class="progress-step completed">Outline</div>
-                            <div class="progress-step active">Draft</div>
-                            <div class="progress-step">Finalize</div>
-                        </div>
-                    </div>
-                    """
-                    loading_message = "Drafting your blog post..."
-                else:
-                    step_html = """
-                    <div class="progress-container">
-                        <span class="progress-label">Content Generation Progress</span>
-                        <div class="progress-steps">
-                            <div class="progress-step completed">Research</div>
-                            <div class="progress-step completed">Outline</div>
-                            <div class="progress-step completed">Draft</div>
-                            <div class="progress-step active">Finalize</div>
-                        </div>
-                    </div>
-                    """
-                    loading_message = "Finalizing and polishing content..."
-                
-                # Update the progress steps container
-                progress_steps_container.markdown(step_html, unsafe_allow_html=True)
-                
-                # Also update the loading message based on the current step
-                loading_container.markdown(f"""
+            # Only run the generation process if the button was just clicked
+            if generate_clicked:
+                # Create a simple progress bar without status text
+                progress_bar = st.progress(0)
+
+                # Add a custom loading animation
+                loading_container = st.empty()
+                loading_container.markdown("""
                 <div class="loading-animation">
                     <div class="dot"></div>
                     <div class="dot"></div>
                     <div class="dot"></div>
-                    <div style="margin-left: 10px; font-weight: 500;">{loading_message}</div>
+                    <div style="margin-left: 10px; font-weight: 500;">Generating your content...</div>
                 </div>
                 """, unsafe_allow_html=True)
-            
-            # Use a minimal spinner
-            with st.spinner("Generating content..."):
-                try:
-                    # Convert inputs to ResearchTopic
-                    try:
-                        # First try to create the ResearchTopic object
-                        research_request = ResearchTopic(
-                            title=topic,
-                            keywords=[k.strip() for k in keywords.split(",") if k.strip()],
-                            depth=depth
-                        )
-                    except ValidationError as ve:
-                        # Handle Pydantic validation errors specifically
-                        loading_container.empty()
-                        progress_steps_container.empty()
-                        st.error(f"Validation Error: {str(ve)}")
-                        st.stop()
+
+                # Add a progress steps indicator
+                progress_steps_container = st.empty()
+                progress_steps_container.markdown("""
+                <div class="progress-container">
+                    <span class="progress-label">Content Generation Progress</span>
+                    <div class="progress-steps">
+                        <div class="progress-step active">Research</div>
+                        <div class="progress-step">Outline</div>
+                        <div class="progress-step">Draft</div>
+                        <div class="progress-step">Finalize</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Now define the update_progress function
+                def update_progress(progress_value, status_message):
+                    """Update the progress bar and progress steps."""
+                    progress_bar.progress(progress_value)
                     
-                    # Call research_topic with our updated callback
-                    result = research_topic(research_request, progress_callback=update_progress, use_cache=use_cache)
+                    # Only add delay for specific transition points to reduce overall generation time
+                    # while still making transitions visible
+                    if progress_value in [0.25, 0.5, 0.75, 0.95]:
+                        time.sleep(1.0)  # Only delay at key transition points
                     
-                    # Check for errors
-                    if "error" in result:
-                        loading_container.empty()
-                        progress_steps_container.empty()
-                        st.error(f"Error: {result['error']}")
-                        if "OpenAI API key not set" in result["error"]:
-                            st.info("Please add your OpenAI API key to the .env file in your project root")
-                        st.stop()
+                    # Update progress steps based on progress value with clearer thresholds
+                    if progress_value <= 0.25:
+                        step_html = """
+                        <div class="progress-container">
+                            <span class="progress-label">Content Generation Progress</span>
+                            <div class="progress-steps">
+                                <div class="progress-step active">Research</div>
+                                <div class="progress-step">Outline</div>
+                                <div class="progress-step">Draft</div>
+                                <div class="progress-step">Finalize</div>
+                            </div>
+                        </div>
+                        """
+                        loading_message = "Researching your topic..."
+                    elif progress_value <= 0.5:
+                        step_html = """
+                        <div class="progress-container">
+                            <span class="progress-label">Content Generation Progress</span>
+                            <div class="progress-steps">
+                                <div class="progress-step completed">Research</div>
+                                <div class="progress-step active">Outline</div>
+                                <div class="progress-step">Draft</div>
+                                <div class="progress-step">Finalize</div>
+                            </div>
+                        </div>
+                        """
+                        loading_message = "Creating content outline..."
+                    elif progress_value <= 0.75:
+                        step_html = """
+                        <div class="progress-container">
+                            <span class="progress-label">Content Generation Progress</span>
+                            <div class="progress-steps">
+                                <div class="progress-step completed">Research</div>
+                                <div class="progress-step completed">Outline</div>
+                                <div class="progress-step active">Draft</div>
+                                <div class="progress-step">Finalize</div>
+                            </div>
+                        </div>
+                        """
+                        loading_message = "Drafting your blog post..."
+                    else:
+                        step_html = """
+                        <div class="progress-container">
+                            <span class="progress-label">Content Generation Progress</span>
+                            <div class="progress-steps">
+                                <div class="progress-step completed">Research</div>
+                                <div class="progress-step completed">Outline</div>
+                                <div class="progress-step completed">Draft</div>
+                                <div class="progress-step active">Finalize</div>
+                            </div>
+                        </div>
+                        """
+                        loading_message = "Finalizing and polishing content..."
                     
-                    # Clear the progress indicators
-                    progress_bar.empty()
-                    loading_container.empty()
-                    progress_steps_container.empty()
+                    # Update the progress steps container
+                    progress_steps_container.markdown(step_html, unsafe_allow_html=True)
                     
-                    # Show completion animation
-                    st.markdown("""
-                    <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0; padding: 15px; background-color: #d1e7dd; border-radius: 8px; animation: fadeIn 0.5s ease-out;">
-                        <div style="font-size: 24px; margin-right: 10px;">✅</div>
-                        <div style="font-weight: 600; color: #0f5132;">Content successfully generated!</div>
+                    # Also update the loading message based on the current step
+                    loading_container.markdown(f"""
+                    <div class="loading-animation">
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div class="dot"></div>
+                        <div style="margin-left: 10px; font-weight: 500;">{loading_message}</div>
                     </div>
                     """, unsafe_allow_html=True)
+                
+                # Create the research request
+                try:
+                    research_request = ResearchTopic(
+                        title=topic,
+                        keywords=[k.strip() for k in keywords.split(",") if k.strip()],
+                        depth=depth
+                    )
                     
-                    # Store the generated content in session state for access in the chat tab
-                    if "current_blog_title" not in st.session_state:
-                        st.session_state.current_blog_title = result['title']
-                    if "current_blog_content" not in st.session_state:
-                        st.session_state.current_blog_content = result['content']
-                    else:
-                        st.session_state.current_blog_title = result['title']
-                        st.session_state.current_blog_content = result['content']
+                    # Generate content
+                    result = research_topic(research_request, progress_callback=update_progress, use_cache=use_cache)
                     
-                    # Display results in a card container
-                    st.markdown('<div class="card-container">', unsafe_allow_html=True)
-                    
-                    # Display the results
-                    if "error" in result:
-                        st.error(f"Error: {result['error']}")
-                    else:
-                        with st.container():
-                            st.markdown("## 📝 Generated Blog Post")
-                            
-                            # Display cache information with more details
-                            if result.get("source") == "cached":
-                                # For cached results, immediately show completion instead of stepping through
-                                progress_bar.progress(1.0)
-                                progress_steps_container.markdown("""
-                                <div class="progress-container">
-                                    <span class="progress-label">Content Generation Progress</span>
-                                    <div class="progress-steps">
-                                        <div class="progress-step completed">Research</div>
-                                        <div class="progress-step completed">Outline</div>
-                                        <div class="progress-step completed">Draft</div>
-                                        <div class="progress-step completed">Finalize</div>
-                                    </div>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                loading_container.empty()  # Remove the loading animation
-                                st.success("✅ Retrieved cached content successfully!")
-                            else:
-                                st.success("✅ New content generated successfully!")
-                            
-                            # Display metadata in an expander
-                            with st.expander("Content Metadata"):
-                                st.markdown(f"**Title:** {result['title']}")
-                                st.markdown(f"**Depth:** {result['depth']}")
-                                st.markdown(f"**Keywords:** {', '.join(result['keywords']) if result['keywords'] else 'None'}")
-                                st.markdown(f"**Source:** {'Retrieved from cache' if result.get('source') == 'cached' else 'Freshly generated'}")
-                                if result.get("source") == "cached":
-                                    st.markdown(f"**Cache Key:** `{result.get('cache_key', 'N/A')}`")
-                                    st.markdown(f"**Cached At:** {result.get('cached_at', 'unknown time')}")
-                                else:
-                                    st.markdown(f"**Generated At:** {result.get('generated_at', 'N/A')}")
-                    
-                    # Create a text area for editing the generated content
-                    generated_content = result["content"]
-                    st.markdown(f"# {result['title']}")
-                    
-                    # Create tabs for editing and preview
-                    edit_tab, preview_tab = st.tabs(["✏️ Edit", "👁️ Preview"])
-                    
-                    with edit_tab:
-                        edited_content = st.text_area(
-                            "Edit your blog post",
-                            value=generated_content,
-                            height=400,
-                            key="blog_editor"
-                        )
+                    # Store everything in session state
+                    if "error" not in result:
+                        st.session_state.current_result = result
+                        st.session_state.edited_content = result["content"]
+                        st.session_state.current_blog_content = result["content"]
+                        st.session_state.current_blog_title = result["title"]
+                        st.session_state.content_generated = True
                         
-                        # Update the session state with edited content
-                        st.session_state.current_blog_content = edited_content
-                    
-                    with preview_tab:
-                        st.markdown("### Preview of Formatted Blog Post")
-                        
-                        # Display the content as formatted markdown only
-                        st.code(edited_content, language="markdown")
-                    
-                    # Center the download button
-                    st.markdown('<div class="center-content">', unsafe_allow_html=True)
-                    
-                    # Function to convert markdown to HTML
-                    def markdown_to_html(md_text, title):
-                        html_content = markdown.markdown(md_text, extensions=['fenced_code', 'tables'])
-                        
-                        # Create a complete HTML document with basic styling
-                        html_doc = f"""<!DOCTYPE html>
-                        <html>
-                        <head>
-                            <title>{title}</title>
-                            <meta charset="utf-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1">
-                            <style>
-                                body {{
-                                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                                    line-height: 1.6;
-                                    color: #333;
-                                    max-width: 800px;
-                                    margin: 0 auto;
-                                    padding: 20px;
-                                }}
-                                h1, h2, h3, h4, h5, h6 {{
-                                    color: #0066cc;
-                                    margin-top: 24px;
-                                    margin-bottom: 16px;
-                                }}
-                                h1 {{
-                                    font-size: 2em;
-                                    border-bottom: 1px solid #eaecef;
-                                    padding-bottom: 0.3em;
-                                }}
-                                h2 {{
-                                    font-size: 1.5em;
-                                    border-bottom: 1px solid #eaecef;
-                                    padding-bottom: 0.3em;
-                                }}
-                                code {{
-                                    background-color: #f6f8fa;
-                                    border-radius: 3px;
-                                    font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-                                    padding: 0.2em 0.4em;
-                                    font-size: 85%;
-                                }}
-                                pre {{
-                                    background-color: #f6f8fa;
-                                    border-radius: 3px;
-                                    font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
-                                    padding: 16px;
-                                    overflow: auto;
-                                }}
-                                pre code {{
-                                    background-color: transparent;
-                                    padding: 0;
-                                }}
-                                blockquote {{
-                                    border-left: 4px solid #ddd;
-                                    padding-left: 16px;
-                                    color: #666;
-                                    margin-left: 0;
-                                }}
-                                img {{
-                                    max-width: 100%;
-                                }}
-                                table {{
-                                    border-collapse: collapse;
-                                    width: 100%;
-                                    margin-bottom: 16px;
-                                }}
-                                table, th, td {{
-                                    border: 1px solid #ddd;
-                                }}
-                                th, td {{
-                                    padding: 8px 16px;
-                                    text-align: left;
-                                }}
-                                th {{
-                                    background-color: #f6f8fa;
-                                }}
-                            </style>
-                        </head>
-                        <body>
-                            <h1>{title}</h1>
-                            {html_content}
-                        </body>
-                        </html>"""
-                        
-                        return html_doc
-                    
-                    # Create HTML version of the content
-                    html_content = markdown_to_html(edited_content, result['title'])
-                    
-                    # Create a row for download buttons
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        # Markdown download button
-                        st.download_button(
-                            label="📥 Download as Markdown",
-                            data=edited_content,
-                            file_name=f"{topic.lower().replace(' ', '_')}_blog.md",
-                            mime="text/markdown",
-                            help="Download your blog post as a Markdown file"
-                        )
-                    
-                    with col2:
-                        # HTML download button
-                        st.download_button(
-                            label="📄 Download as HTML",
-                            data=html_content,
-                            file_name=f"{topic.lower().replace(' ', '_')}_blog.html",
-                            mime="text/html",
-                            help="Download your blog post as an HTML file"
-                        )
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    # Add some tips
-                    with st.expander("✨ Tips for editing your blog post"):
-                        st.markdown("""
-                        - Add personal insights and experiences
-                        - Check code examples for accuracy
-                        - Add more examples or use cases
-                        - Include images or diagrams (add image links)
-                        - Format with markdown for better readability
-                        """)
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)  # Close card container
-                    
-                    # Save the blog to the local database
-                    blog_id = save_blog(result['title'], edited_content, result['metadata'])
-                    
+                        # Clear the progress indicators
+                        progress_bar.empty()
+                        loading_container.empty()
+                        progress_steps_container.empty()
                 except Exception as e:
-                    # This is for other unexpected errors - keep this as it's important for debugging
                     st.error(f"Error generating content: {str(e)}")
-                    # Only show API key message if it's likely an API issue
-                    if "api" in str(e).lower() or "key" in str(e).lower() or "openai" in str(e).lower():
-                        st.info("This appears to be an API key error. Please check that your OpenAI API key is valid and has sufficient credits.")
+                    st.stop()
+            else:
+                # We're displaying previously generated content
+                # Make sure we have content to display
+                if st.session_state.current_result is None:
+                    st.error("No content available. Please generate content first.")
+                    st.stop()
+                
+                # Use the stored result
+                result = st.session_state.current_result
+            
+            # Make sure any lingering progress indicators are cleared
+            if 'progress_bar' in locals():
+                progress_bar.empty()
+            if 'loading_container' in locals():
+                loading_container.empty()
+            if 'progress_steps_container' in locals():
+                progress_steps_container.empty()
+            
+            # Display success message
+            st.markdown("""
+            <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0; padding: 15px; background-color: #d1e7dd; border-radius: 8px; animation: fadeIn 0.5s ease-out;">
+                <div style="font-size: 24px; margin-right: 10px;">✅</div>
+                <div style="font-weight: 600; color: #0f5132;">Content successfully generated!</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Display the blog content
+            st.markdown('<div class="card-container">', unsafe_allow_html=True)
+            
+            with st.container():
+                st.markdown("## 📝 Generated Blog Post")
+                
+                # Display metadata in an expander
+                with st.expander("Content Metadata"):
+                    st.markdown(f"**Title:** {st.session_state.current_blog_title}")
+                    st.markdown(f"**Depth:** {result['depth']}")
+                    st.markdown(f"**Keywords:** {', '.join(result['keywords']) if result['keywords'] else 'None'}")
+                    # ... other metadata
+            
+            # Display the title
+            st.markdown(f"# {st.session_state.current_blog_title}")
+            
+            # Create tabs for editing and preview
+            edit_tab, preview_tab = st.tabs(["✏️ Edit", "👁️ Preview"])
+            
+            with edit_tab:
+                # Use session state for the text area
+                edited_content = st.text_area(
+                    "Edit your blog post",
+                    value=st.session_state.edited_content,
+                    height=400,
+                    key="blog_editor"
+                )
+                
+                # Update session state when content changes
+                st.session_state.edited_content = edited_content
+                st.session_state.current_blog_content = edited_content
+            
+            with preview_tab:
+                st.markdown("### Preview of Formatted Blog Post")
+                st.code(st.session_state.edited_content, language="markdown")
+            
+            # Center the download buttons
+            st.markdown('<div class="center-content">', unsafe_allow_html=True)
+            
+            # Create HTML version of the content from session state
+            html_content = markdown_to_html(st.session_state.edited_content, st.session_state.current_blog_title)
+            
+            # Create a row for download buttons
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Markdown download button
+                st.download_button(
+                    label="📥 Download as Markdown",
+                    data=st.session_state.edited_content,
+                    file_name=f"{topic.lower().replace(' ', '_')}_blog.md",
+                    mime="text/markdown",
+                    help="Download your blog post as a Markdown file",
+                    on_click=lambda: None  # Empty callback to prevent state reset
+                )
+            
+            with col2:
+                # HTML download button
+                st.download_button(
+                    label="📄 Download as HTML",
+                    data=html_content,
+                    file_name=f"{topic.lower().replace(' ', '_')}_blog.html",
+                    mime="text/html",
+                    help="Download your blog post as an HTML file",
+                    on_click=lambda: None  # Empty callback to prevent state reset
+                )
+            
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+            # Add some tips
+            with st.expander("✨ Tips for editing your blog post"):
+                st.markdown("""
+                - Add personal insights and experiences
+                - Check code examples for accuracy
+                - Add more examples or use cases
+                - Include images or diagrams (add image links)
+                - Format with markdown for better readability
+                """)
+            
+            st.markdown('</div>', unsafe_allow_html=True)  # Close card container
+            
+            # Save the blog to the local database
+            blog_id = save_blog(result['title'], result['content'], result['metadata'])
+            
         else:
             st.error("Please provide a topic")
 

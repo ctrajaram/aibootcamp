@@ -145,7 +145,7 @@ def create_researcher_agent() -> Agent:
         allow_delegation=False,
         # Configure the language model
         llm_config={
-            "config_list": [{"model": "gpt-4", "api_key": openai_api_key}],
+            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.5,  # More factual responses
             "request_timeout": 120  # Longer timeout for research
         }

@@ -394,8 +394,48 @@ def get_agent_response(agent_type, query, blog_content=None):
                 # If no sources were found, add a note
                 sources_section += "No specific sources were found in the search results.\n"
             
-            # Always include the header and sources section
-            response_text = f"{header}{response_text}{sources_section}"
+            # Check for hallucinations if web search was performed
+            try:
+                # Import the hallucination checker
+                from app.agents.hallucination_checker import HallucinationChecker
+                
+                # Show hallucination check indicator in UI
+                hallucination_status = st.empty()
+                hallucination_status.info("🔍 Checking response for potential hallucinations...")
+                
+                print("\n--- STARTING HALLUCINATION CHECK ---")
+                print(f"Query: {query[:100]}...")
+                print(f"Sources count: {len(sources)}")
+                
+                # Initialize hallucination checker
+                checker = HallucinationChecker()
+                
+                # Evaluate the response
+                evaluation = checker.evaluate_response(
+                    query=query,
+                    response=response_text,
+                    web_search_results=web_search_results,
+                    sources=sources
+                )
+                
+                # Format evaluation results
+                hallucination_section = checker.format_evaluation_results(evaluation)
+                
+                print(f"Hallucination section: {hallucination_section}")
+                
+                # Clear the hallucination check indicator
+                hallucination_status.empty()
+                
+                # Add hallucination check results to the response
+                response_text = f"{header}{response_text}{sources_section}{hallucination_section}"
+                print("Successfully added hallucination check to response")
+            except Exception as e:
+                import traceback
+                print(f"ERROR checking for hallucinations: {str(e)}")
+                traceback.print_exc()
+                # Continue without hallucination check if there's an error
+                response_text = f"{header}{response_text}{sources_section}\n\n**Hallucination Check:**\n⚠️ Error performing hallucination check: {str(e)}"
+                print("Added error message for hallucination check")
         
         return response_text
     except Exception as e:

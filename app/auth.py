@@ -180,9 +180,8 @@ class SimpleAuthenticator:
     
     def create_default_credentials(self):
         """Create default credentials file with admin user."""
-        admin_password = "admin"
-        if self.admin_password:
-            admin_password = self.admin_password
+        # Use environment variable or a secure random password as default
+        admin_password = self.admin_password or ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
             
         default_credentials = {
             "admin": {

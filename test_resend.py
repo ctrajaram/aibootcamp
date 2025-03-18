@@ -1,8 +1,13 @@
 import resend
 import os
+import sys
 
 # Set the API key
-api_key = "re_GqtZRXhH_7EFuSJpn3AfU2rvf3KDg5tUp"
+api_key = os.getenv("RESEND_API_KEY")
+if not api_key:
+    print("Error: Resend API key not found in environment variables")
+    sys.exit(1)
+
 resend.api_key = api_key
 
 try:

@@ -1127,6 +1127,73 @@ class SimpleAuthenticator:
             return password_hash.startswith('$2a$') or password_hash.startswith('$2b$')
         return False
 
+    def _init_db_if_needed(self):
+        """Initialize the database connection for deployment mode."""
+        try:
+            # Get the database path
+            db_path = get_db_path()
+            print(f"Database path: {db_path}")
+            
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            
+            # Initialize the database connection
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Create users table if it doesn't exist
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                last_login TEXT,
+                is_verified INTEGER DEFAULT 0,
+                verification_token TEXT,
+                verification_expiry TEXT
+            )
+            ''')
+            
+            conn.commit()
+            
+            # Check if admin user exists, create if not
+            cursor.execute("SELECT * FROM users WHERE username = ?", (self.admin_username or "admin",))
+            if cursor.fetchone() is None and (self.admin_username or self.admin_password):
+                # Create admin user
+                admin_id = str(uuid.uuid4())
+                now = datetime.now().isoformat()
+                hashed_password = self.hash_password(self.admin_password or "password")
+                
+                cursor.execute('''
+                INSERT INTO users (id, username, password, name, email, created_at, is_verified)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+                ''', (
+                    admin_id, 
+                    self.admin_username or "admin", 
+                    hashed_password, 
+                    "Administrator", 
+                    f"{self.admin_username or 'admin'}@example.com", 
+                    now
+                ))
+                
+                conn.commit()
+                print(f"Created admin user: {self.admin_username or 'admin'}")
+            
+            conn.close()
+            return True
+        except Exception as e:
+            print(f"Error in _init_db_if_needed: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
+    
+    def _get_db_connection(self):
+        """Get a database connection."""
+        return sqlite3.connect(get_db_path())
+
 # Create a singleton instance
 authenticator = SimpleAuthenticator()
 

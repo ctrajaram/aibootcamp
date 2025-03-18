@@ -10,7 +10,11 @@ from datetime import datetime, timedelta
 import time
 import json
 import re
-import bcrypt
+try:
+    import bcrypt
+except ImportError:
+    print("WARNING: bcrypt module not found. Password hashing will use a fallback method.")
+    bcrypt = None
 import secrets
 import string
 import requests
@@ -235,7 +239,10 @@ class SimpleAuthenticator:
     
     def hash_password(self, password):
         """Hash a password for storing."""
-        return hashlib.sha256(password.encode()).hexdigest()
+        if bcrypt:
+            return bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        else:
+            return hashlib.sha256(password.encode()).hexdigest()
     
     def generate_verification_token(self):
         """Generate a random verification token."""
@@ -549,7 +556,10 @@ class SimpleAuthenticator:
                 return False
             
             # Verify the password
-            return stored_password == self.hash_password(password)
+            if bcrypt:
+                return bcrypt.checkpw(password.encode(), stored_password)
+            else:
+                return stored_password == self.hash_password(password)
         else:
             if username not in self.credentials:
                 return False
@@ -559,37 +569,66 @@ class SimpleAuthenticator:
                 return False
             
             # Verify the password
-            return self.credentials[username]["password"] == self.hash_password(password)
+            if bcrypt:
+                return bcrypt.checkpw(password.encode(), self.credentials[username]["password"])
+            else:
+                return self.credentials[username]["password"] == self.hash_password(password)
     
     def _verify_password_db(self, username, password):
         """Verify password against database."""
-        conn = sqlite3.connect(get_db_path())
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT password, is_verified FROM users WHERE username = ?", (username,))
-        result = cursor.fetchone()
-        
-        if result is None:
-            conn.close()
+        conn = None
+        try:
+            conn = self._get_db_connection()
+            cursor = conn.cursor()
+            
+            # Get the stored password hash and verification status
+            cursor.execute("SELECT password, is_verified FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            
+            if not result:
+                return False
+                
+            stored_password, is_verified = result
+            
+            # Check if user is verified
+            if not is_verified:
+                return False
+            
+            # Verify the password
+            password_verified = False
+            if bcrypt:
+                try:
+                    # If stored password is already a bcrypt hash
+                    if isinstance(stored_password, bytes) or (isinstance(stored_password, str) and 
+                       (stored_password.startswith('$2b$') or stored_password.startswith('$2a$'))):
+                        if isinstance(stored_password, str):
+                            stored_password = stored_password.encode()
+                        password_verified = bcrypt.checkpw(password.encode(), stored_password)
+                    # If stored password is a sha256 hash (from before bcrypt was added)
+                    else:
+                        password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
+                except Exception as e:
+                    print(f"Error verifying password with bcrypt: {e}")
+                    # Fallback to sha256
+                    password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
+            else:
+                # If bcrypt is not available, use sha256
+                password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
+            
+            # Update last login time if password matches
+            if password_verified:
+                now = datetime.now().isoformat()
+                cursor.execute("UPDATE users SET last_login = ? WHERE username = ?", (now, username))
+                conn.commit()
+                
+            return password_verified
+            
+        except Exception as e:
+            print(f"Error in _verify_password_db: {e}")
             return False
-        
-        stored_password, is_verified = result
-        
-        # Check if user is verified
-        if not is_verified:
-            conn.close()
-            return False
-        
-        hashed_password = self.hash_password(password)
-        
-        # Update last login time if password matches
-        if hashed_password == stored_password:
-            now = datetime.now().isoformat()
-            cursor.execute("UPDATE users SET last_login = ? WHERE username = ?", (now, username))
-            conn.commit()
-        
-        conn.close()
-        return hashed_password == stored_password
+        finally:
+            if conn:
+                conn.close()
     
     def get_user_info(self, username):
         """Get information about a user."""
@@ -1054,7 +1093,7 @@ class SimpleAuthenticator:
                 st.warning(f"⚠️ In testing mode: Emails can only be sent to {verified_email}.")
                 st.info("Please use the verification link above to verify your account.")
                 return True  # Return true so the account creation continues
-                    
+                
         except Exception as e:
             print(f"Error in send_verification_email: {str(e)}")
             print(f"Error type: {type(e).__name__}")

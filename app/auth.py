@@ -239,9 +239,16 @@ class SimpleAuthenticator:
     
     def hash_password(self, password):
         """Hash a password for storing."""
-        if bcrypt:
-            return bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-        else:
+        try:
+            if bcrypt:
+                # Use bcrypt for secure password hashing
+                return bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+            else:
+                # Fallback to SHA-256 if bcrypt is not available
+                return hashlib.sha256(password.encode()).hexdigest()
+        except Exception as e:
+            print(f"Error in hash_password: {e}")
+            # Fallback to SHA-256 if there's an error with bcrypt
             return hashlib.sha256(password.encode()).hexdigest()
     
     def generate_verification_token(self):
@@ -540,26 +547,8 @@ class SimpleAuthenticator:
     def verify_password(self, username, password):
         """Verify if the password is correct for the given username."""
         if self.is_deployment:
-            conn = sqlite3.connect(get_db_path())
-            cursor = conn.cursor()
-            cursor.execute("SELECT password, is_verified FROM users WHERE username = ?", (username,))
-            result = cursor.fetchone()
-            conn.close()
-            
-            if result is None:
-                return False
-            
-            stored_password, is_verified = result
-            
-            # Check if the user is verified
-            if not is_verified:
-                return False
-            
-            # Verify the password
-            if bcrypt:
-                return bcrypt.checkpw(password.encode(), stored_password)
-            else:
-                return stored_password == self.hash_password(password)
+            # Use the _verify_password_db method which has better error handling
+            return self._verify_password_db(username, password)
         else:
             if username not in self.credentials:
                 return False
@@ -569,10 +558,21 @@ class SimpleAuthenticator:
                 return False
             
             # Verify the password
-            if bcrypt:
-                return bcrypt.checkpw(password.encode(), self.credentials[username]["password"])
-            else:
-                return self.credentials[username]["password"] == self.hash_password(password)
+            stored_password = self.credentials[username]["password"]
+            
+            try:
+                if bcrypt and self._is_bcrypt_hash(stored_password):
+                    # Handle bcrypt password
+                    if isinstance(stored_password, str):
+                        stored_password = stored_password.encode()
+                    return bcrypt.checkpw(password.encode(), stored_password)
+                else:
+                    # Handle non-bcrypt password or when bcrypt is not available
+                    return stored_password == self.hash_password(password)
+            except Exception as e:
+                print(f"Error in verify_password: {e}")
+                # Fall back to direct comparison if there's an error
+                return stored_password == self.hash_password(password)
     
     def _verify_password_db(self, username, password):
         """Verify password against database."""
@@ -596,23 +596,13 @@ class SimpleAuthenticator:
             
             # Verify the password
             password_verified = False
-            if bcrypt:
-                try:
-                    # If stored password is already a bcrypt hash
-                    if isinstance(stored_password, bytes) or (isinstance(stored_password, str) and 
-                       (stored_password.startswith('$2b$') or stored_password.startswith('$2a$'))):
-                        if isinstance(stored_password, str):
-                            stored_password = stored_password.encode()
-                        password_verified = bcrypt.checkpw(password.encode(), stored_password)
-                    # If stored password is a sha256 hash (from before bcrypt was added)
-                    else:
-                        password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
-                except Exception as e:
-                    print(f"Error verifying password with bcrypt: {e}")
-                    # Fallback to sha256
-                    password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
+            if bcrypt and self._is_bcrypt_hash(stored_password):
+                # If stored password is already a bcrypt hash
+                if isinstance(stored_password, str):
+                    stored_password = stored_password.encode()
+                password_verified = bcrypt.checkpw(password.encode(), stored_password)
             else:
-                # If bcrypt is not available, use sha256
+                # If stored password is a sha256 hash (from before bcrypt was added)
                 password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
             
             # Update last login time if password matches
@@ -1100,6 +1090,20 @@ class SimpleAuthenticator:
             import traceback
             traceback.print_exc()
             return False
+
+    def _is_bcrypt_hash(self, password_hash):
+        """Check if a password hash is in bcrypt format."""
+        if isinstance(password_hash, bytes):
+            try:
+                # Try to decode it to check if it starts with the bcrypt prefix
+                decoded = password_hash.decode('utf-8')
+                return decoded.startswith('$2a$') or decoded.startswith('$2b$')
+            except UnicodeDecodeError:
+                # If it can't be decoded as UTF-8, it's probably not a bcrypt hash
+                return False
+        elif isinstance(password_hash, str):
+            return password_hash.startswith('$2a$') or password_hash.startswith('$2b$')
+        return False
 
 # Create a singleton instance
 authenticator = SimpleAuthenticator()

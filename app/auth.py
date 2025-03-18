@@ -5,8 +5,24 @@ import pickle
 import hashlib
 import sqlite3
 import uuid
-from datetime import datetime
+import datetime
+from datetime import datetime, timedelta
+import time
+import json
+import re
+import bcrypt
+import secrets
+import string
+import requests
+import resend
 from dotenv import load_dotenv
+
+# Set Resend API key directly
+os.environ["RESEND_API_KEY"] = "re_GqtZRXhH_7EFuSJpn3AfU2rvf3KDg5tUp"
+os.environ["RESEND_FROM_EMAIL"] = "onboarding@resend.dev"
+os.environ["RESEND_FROM_NAME"] = "TechMuse"
+os.environ["BASE_URL"] = "http://localhost:8501"
+os.environ["EDUCATIONAL_MODE"] = "false"
 
 # Load environment variables
 load_dotenv()
@@ -26,6 +42,20 @@ def get_credentials():
 
 # Get the credentials
 ADMIN_USERNAME, ADMIN_PASSWORD = get_credentials()
+
+# Get Mailgun API key
+def get_mailgun_api_key():
+    try:
+        return st.secrets["MAILGUN_API_KEY"]
+    except (KeyError, TypeError):
+        return os.getenv("MAILGUN_API_KEY", "")
+
+# Get email sender
+def get_email_sender():
+    try:
+        return st.secrets["MAILGUN_FROM_EMAIL"]
+    except (KeyError, TypeError):
+        return os.getenv("MAILGUN_FROM_EMAIL", "noreply@techmuse.com")
 
 # Database setup
 def get_db_path():
@@ -51,9 +81,12 @@ def init_db():
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
+        email TEXT NOT NULL,
         created_at TEXT NOT NULL,
-        last_login TEXT
+        last_login TEXT,
+        is_verified INTEGER DEFAULT 0,
+        verification_token TEXT,
+        verification_expiry TEXT
     )
     ''')
     
@@ -68,8 +101,8 @@ def init_db():
         hashed_password = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
         
         cursor.execute('''
-        INSERT INTO users (id, username, password, name, email, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, username, password, name, email, created_at, is_verified)
+        VALUES (?, ?, ?, ?, ?, ?, 1)
         ''', (admin_id, ADMIN_USERNAME, hashed_password, "Administrator", "admin@example.com", now))
         
         conn.commit()
@@ -79,7 +112,84 @@ def init_db():
 # Initialize the database
 init_db()
 
-# Simple authentication with SQLite support
+# Email sending functions
+def send_verification_email(email, username, token):
+    """Send a verification email to the user using Resend."""
+    try:
+        # Create verification URL
+        base_url = "http://localhost:8501"  # Hardcoded for testing
+        verification_url = f"{base_url}?verify={token}"
+        
+        # Always show the verification link as a fallback
+        st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
+        
+        # Use the same pattern as the successful test script
+        api_key = "re_GqtZRXhH_7EFuSJpn3AfU2rvf3KDg5tUp"
+        resend.api_key = api_key
+        
+        # Email content
+        html_content = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-bottom: 3px solid #4361EE;">
+                <h1 style="color: #4361EE;">Welcome to TechMuse!</h1>
+            </div>
+            <div style="padding: 20px;">
+                <p>Hello {username},</p>
+                <p>Thank you for signing up. Please verify your email address by clicking the button below:</p>
+                <p style="text-align: center;">
+                    <a href="{verification_url}" style="display: inline-block; background-color: #4361EE; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
+                </p>
+                <p>Or copy and paste this URL into your browser:</p>
+                <p style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all;">{verification_url}</p>
+                <p>This link will expire in 24 hours.</p>
+                <p>If you did not sign up for TechMuse, please ignore this email.</p>
+            </div>
+            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+                <p>&copy; 2025 TechMuse. All rights reserved.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        # In testing mode, Resend only allows sending to the verified email
+        verified_email = "ctrwillow@gmail.com"
+        
+        # Check if the user's email matches the verified email
+        if email.lower() == verified_email.lower():
+            # Send email using Resend - exact same pattern as test_resend.py
+            params = {
+                "from": "onboarding@resend.dev",
+                "to": email,
+                "subject": "Verify Your TechMuse Account",
+                "html": html_content,
+            }
+            
+            print(f"Sending verification email to verified address: {email}")
+            response = resend.Emails.send(params)
+            print(f"Response: {response}")
+            
+            if response and "id" in response:
+                print(f"Email sent successfully with ID: {response['id']}")
+                st.success(f"✉️ Verification email sent to {email}. Please check your inbox.")
+                return True
+            else:
+                print(f"Failed to send email: {response}")
+                return False
+        else:
+            # For non-verified emails in testing mode, just show a message
+            print(f"Cannot send to {email} in testing mode. Only {verified_email} is allowed.")
+            st.warning(f"⚠️ In testing mode: Emails can only be sent to {verified_email}.")
+            st.info("Please use the verification link above to verify your account.")
+            return True  # Return true so the account creation continues
+                
+    except Exception as e:
+        print(f"Error in send_verification_email: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
+        return False
+
 class SimpleAuthenticator:
     def __init__(self):
         """Initialize the authenticator with credentials from database or file."""
@@ -110,7 +220,8 @@ class SimpleAuthenticator:
             "admin": {
                 "name": "Administrator",
                 "password": self.hash_password("admin"),
-                "email": "admin@example.com"
+                "email": "admin@example.com",
+                "is_verified": True
             }
         }
         
@@ -126,100 +237,349 @@ class SimpleAuthenticator:
         """Hash a password for storing."""
         return hashlib.sha256(password.encode()).hexdigest()
     
-    def add_user(self, username, password, name, email):
+    def generate_verification_token(self):
+        """Generate a random verification token."""
+        import secrets
+        return secrets.token_urlsafe(32)
+    
+    def add_user(self, username, password, name, email, require_verification=True):
         """Add a new user to the credentials."""
-        # In deployment, add user to database
-        if self.is_deployment:
-            return self._add_user_to_db(username, password, name, email)
-        
-        # In local development with production flag, we'll now allow adding users
-        # Remove the production mode restriction
-        # if self.is_production:
-        #     return False, "Cannot add users in production mode"
-        
-        # In local development, add to file
         # Check if username already exists
-        if username in self.credentials:
-            return False, "Username already exists"
-        
-        # Add the new user
-        self.credentials[username] = {
-            "name": name,
-            "password": self.hash_password(password),
-            "email": email
-        }
-        
-        # Save the updated credentials
+        if self.is_deployment:
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            try:
+                # Check if username already exists
+                cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+                if cursor.fetchone():
+                    conn.close()
+                    return False, "Username already exists"
+                
+                # Generate verification token if required
+                verification_token = None
+                verification_expiry = None
+                if require_verification:
+                    verification_token = self.generate_verification_token()
+                    verification_expiry = (datetime.now() + timedelta(hours=24)).isoformat()
+                
+                # Add the new user
+                cursor.execute('''
+                INSERT INTO users (username, password, name, email, is_verified, verification_token, verification_expiry)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    username, 
+                    self.hash_password(password), 
+                    name, 
+                    email, 
+                    0 if require_verification else 1,  # 0 = not verified, 1 = verified
+                    verification_token, 
+                    verification_expiry
+                ))
+                
+                conn.commit()
+                
+                # Send verification email if required
+                if require_verification:
+                    email_sent = self.send_verification_email(email, username, verification_token)
+                    if not email_sent:
+                        # If email fails, still create the account but warn the user
+                        conn.close()
+                        return True, "Account created but verification email could not be sent. Please contact support."
+                
+                conn.close()
+                
+                if require_verification:
+                    return True, "Account created successfully. Please check your email to verify your account."
+                else:
+                    return True, "Account created successfully."
+            
+            except Exception as e:
+                conn.close()
+                return False, f"Error adding user: {str(e)}"
+        else:
+            # For development mode
+            if username in self.credentials:
+                return False, "Username already exists"
+            
+            # Add the new user
+            self.credentials[username] = {
+                "name": name,
+                "password": self.hash_password(password),
+                "email": email,
+                "is_verified": not require_verification
+            }
+            
+            # If verification is required, generate a token and send email
+            if require_verification:
+                verification_token = self.generate_verification_token()
+                self.credentials[username]["verification_token"] = verification_token
+                self.credentials[username]["verification_expiry"] = datetime.now() + timedelta(hours=24)
+                
+                # Send verification email
+                email_sent = self.send_verification_email(email, username, verification_token)
+                if not email_sent:
+                    # If email fails, still create the account but warn the user
+                    self._save_credentials()
+                    return True, "Account created but verification email could not be sent. Please contact support."
+            
+            # Save the updated credentials
+            self._save_credentials()
+            
+            if require_verification:
+                return True, "Account created successfully. Please check your email to verify your account."
+            else:
+                return True, "Account created successfully."
+    
+    def _save_credentials(self):
+        """Save credentials to file."""
         with open(self.credentials_path, "wb") as f:
             pickle.dump(self.credentials, f)
-        
-        return True, "User added successfully"
     
-    def _add_user_to_db(self, username, password, name, email):
-        """Add a new user to the database."""
-        conn = sqlite3.connect(get_db_path())
-        cursor = conn.cursor()
-        
-        # Check if username already exists
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-        if cursor.fetchone() is not None:
-            conn.close()
-            return False, "Username already exists"
-        
-        # Check if email already exists
-        cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
-        if cursor.fetchone() is not None:
-            conn.close()
-            return False, "Email already exists"
-        
-        # Add the new user
-        user_id = str(uuid.uuid4())
-        now = datetime.now().isoformat()
-        hashed_password = self.hash_password(password)
-        
-        try:
+    def verify_user(self, token):
+        """Verify a user's email using the verification token."""
+        if self.is_deployment:
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            try:
+                # Find the user with this token
+                cursor.execute(
+                    "SELECT id, username, verification_expiry FROM users WHERE verification_token = ?", 
+                    (token,)
+                )
+                result = cursor.fetchone()
+                
+                if not result:
+                    conn.close()
+                    return False, "Invalid verification token."
+                
+                user_id, username, expiry_str = result
+                
+                # Check if token is expired
+                if expiry_str:
+                    expiry = datetime.fromisoformat(expiry_str)
+                    if expiry < datetime.now():
+                        conn.close()
+                        return False, "Verification token has expired. Please request a new one."
+                
+                # Update the user to verified status
+                cursor.execute(
+                    "UPDATE users SET is_verified = 1, verification_token = NULL, verification_expiry = NULL WHERE id = ?",
+                    (user_id,)
+                )
+                conn.commit()
+                conn.close()
+                return True, f"Email verified successfully! You can now log in as {username}."
+            except Exception as e:
+                conn.close()
+                return False, f"Error verifying email: {str(e)}"
+        else:
+            # For development mode
+            for username, user_data in self.credentials.items():
+                if user_data.get("verification_token") == token:
+                    # Check if token is expired
+                    expiry = user_data.get("verification_expiry")
+                    if expiry and expiry < datetime.now():
+                        return False, "Verification token has expired. Please request a new one."
+                    
+                    # Mark user as verified
+                    self.credentials[username]["is_verified"] = True
+                    self.credentials[username].pop("verification_token", None)
+                    self.credentials[username].pop("verification_expiry", None)
+                    self._save_credentials()
+                    return True, f"Email verified successfully! You can now log in as {username}."
+            
+            return False, "Invalid verification token."
+    
+    def verify_user_without_token(self, username):
+        """Mark a user as verified without requiring a token (for admin or fallback)."""
+        if self.is_deployment:
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            
             cursor.execute('''
-            INSERT INTO users (id, username, password, name, email, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', (user_id, username, hashed_password, name, email, now))
+            UPDATE users SET is_verified = 1, verification_token = NULL, verification_expiry = NULL
+            WHERE username = ?
+            ''', (username,))
             
             conn.commit()
             conn.close()
-            return True, "User added successfully"
+        else:
+            if username in self.credentials:
+                self.credentials[username]["is_verified"] = True
+                self.credentials[username]["verification_token"] = None
+                self.credentials[username]["verification_expiry"] = None
+                
+                with open(self.credentials_path, "wb") as f:
+                    pickle.dump(self.credentials, f)
+    
+    def resend_verification_email(self, email):
+        """Resend the verification email to the user."""
+        try:
+            if self.is_deployment:
+                conn = sqlite3.connect(get_db_path())
+                cursor = conn.cursor()
+                
+                # Get user by email
+                cursor.execute("SELECT username, verification_token FROM users WHERE email = ? AND is_verified = 0", (email,))
+                result = cursor.fetchone()
+                
+                if not result:
+                    # For testing purposes, allow resending to any email
+                    # Instead of returning an error, generate a new token
+                    username = email.split('@')[0]  # Use part of email as username
+                    verification_token = secrets.token_urlsafe(32)
+                    
+                    # Check if this email exists but is already verified
+                    cursor.execute("SELECT username FROM users WHERE email = ? AND is_verified = 1", (email,))
+                    verified_user = cursor.fetchone()
+                    
+                    if verified_user:
+                        # Update the existing user with a new verification token
+                        cursor.execute(
+                            "UPDATE users SET verification_token = ?, is_verified = 0 WHERE email = ?",
+                            (verification_token, email)
+                        )
+                        conn.commit()
+                        username = verified_user[0]
+                    else:
+                        # This is completely new - just for testing, we'll pretend it exists
+                        st.warning("For testing: Creating a temporary user record for this email")
+                    
+                    conn.close()
+                    
+                    # Send the verification email
+                    success = self.send_verification_email(email, username, verification_token)
+                    if not success:
+                        return False, "Failed to send verification email. Please try again later."
+                    
+                    return True, "Verification email sent. Please check your inbox."
+                
+                username, verification_token = result
+                
+                # Generate a new token if needed
+                if not verification_token:
+                    verification_token = secrets.token_urlsafe(32)
+                    cursor.execute(
+                        "UPDATE users SET verification_token = ? WHERE email = ?",
+                        (verification_token, email)
+                    )
+                    conn.commit()
+                
+                conn.close()
+                
+                # Send the verification email
+                success = self.send_verification_email(email, username, verification_token)
+                if not success:
+                    return False, "Failed to send verification email. Please try again later."
+                
+                return True, "Verification email sent. Please check your inbox."
+            else:
+                # Find user by email
+                username = None
+                for user, details in self.credentials.items():
+                    if details.get("email") == email and not details.get("is_verified", False):
+                        username = user
+                        break
+                
+                if not username:
+                    # For testing purposes, allow resending to any email
+                    # Instead of returning an error, generate a new token
+                    username = email.split('@')[0]  # Use part of email as username
+                    verification_token = secrets.token_urlsafe(32)
+                    
+                    # Check if this email exists but is already verified
+                    verified_user = None
+                    for user, details in self.credentials.items():
+                        if details.get("email") == email and details.get("is_verified", False):
+                            verified_user = user
+                            break
+                    
+                    if verified_user:
+                        # Update the existing user with a new verification token
+                        self.credentials[verified_user]["verification_token"] = verification_token
+                        self.credentials[verified_user]["is_verified"] = False
+                        self.credentials[verified_user]["verification_expiry"] = datetime.now() + timedelta(hours=24)
+                        self._save_credentials()
+                        username = verified_user
+                    else:
+                        # This is completely new - just for testing, we'll pretend it exists
+                        st.warning("For testing: Creating a temporary user record for this email")
+                    
+                    # Send the verification email
+                    success = self.send_verification_email(email, username, verification_token)
+                    if not success:
+                        return False, "Failed to send verification email. Please try again later."
+                    
+                    return True, "Verification email sent. Please check your inbox."
+                
+                # Generate a new token
+                verification_token = secrets.token_urlsafe(32)
+                self.credentials[username]["verification_token"] = verification_token
+                self.credentials[username]["verification_expiry"] = datetime.now() + timedelta(hours=24)
+                
+                # Save the updated credentials
+                self._save_credentials()
+                
+                # Send the verification email
+                success = self.send_verification_email(email, username, verification_token)
+                if not success:
+                    return False, "Failed to send verification email. Please try again later."
+                
+                return True, "Verification email sent. Please check your inbox."
         except Exception as e:
-            conn.close()
-            return False, f"Error adding user: {str(e)}"
+            print(f"Error in resend_verification_email: {e}")
+            return False, f"An error occurred: {str(e)}"
     
     def verify_password(self, username, password):
         """Verify if the password is correct for the given username."""
-        # In deployment, verify against database
         if self.is_deployment:
-            return self._verify_password_db(username, password)
-        
-        # In production local mode, check against environment variables/secrets
-        if self.is_production and username == ADMIN_USERNAME:
-            return self.hash_password(password) == self.hash_password(ADMIN_PASSWORD)
-        
-        # Otherwise check against the credentials file
-        if username not in self.credentials:
-            return False
-        
-        hashed_password = self.hash_password(password)
-        return hashed_password == self.credentials[username]["password"]
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            cursor.execute("SELECT password, is_verified FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result is None:
+                return False
+            
+            stored_password, is_verified = result
+            
+            # Check if the user is verified
+            if not is_verified:
+                return False
+            
+            # Verify the password
+            return stored_password == self.hash_password(password)
+        else:
+            if username not in self.credentials:
+                return False
+            
+            # Check if the user is verified
+            if not self.credentials[username].get("is_verified", True):
+                return False
+            
+            # Verify the password
+            return self.credentials[username]["password"] == self.hash_password(password)
     
     def _verify_password_db(self, username, password):
         """Verify password against database."""
         conn = sqlite3.connect(get_db_path())
         cursor = conn.cursor()
         
-        cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
+        cursor.execute("SELECT password, is_verified FROM users WHERE username = ?", (username,))
         result = cursor.fetchone()
         
         if result is None:
             conn.close()
             return False
         
-        stored_password = result[0]
+        stored_password, is_verified = result
+        
+        # Check if user is verified
+        if not is_verified:
+            conn.close()
+            return False
+        
         hashed_password = self.hash_password(password)
         
         # Update last login time if password matches
@@ -232,26 +592,33 @@ class SimpleAuthenticator:
         return hashed_password == stored_password
     
     def get_user_info(self, username):
-        """Get user information."""
-        # In deployment, get from database
+        """Get information about a user."""
         if self.is_deployment:
-            return self._get_user_info_db(username)
-        
-        # In production local mode with admin user
-        if self.is_production and username == ADMIN_USERNAME:
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            cursor.execute("SELECT name, email, is_verified FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result is None:
+                return None
+            
+            name, email, is_verified = result
             return {
-                "name": "Administrator",
-                "email": "admin@example.com"
+                "name": name,
+                "email": email,
+                "is_verified": bool(is_verified)
             }
-        
-        # Otherwise get from credentials file
-        if username not in self.credentials:
-            return None
-        
-        return {
-            "name": self.credentials[username]["name"],
-            "email": self.credentials[username]["email"]
-        }
+        else:
+            if username not in self.credentials:
+                return None
+            
+            user_data = self.credentials[username]
+            return {
+                "name": user_data.get("name", "User"),
+                "email": user_data.get("email", ""),
+                "is_verified": user_data.get("is_verified", True)
+            }
     
     def _get_user_info_db(self, username):
         """Get user information from database."""
@@ -577,6 +944,123 @@ class SimpleAuthenticator:
         except Exception as e:
             conn.close()
             return False, f"Error resetting password: {str(e)}"
+    
+    def check_user_exists(self, username):
+        """Check if a user exists."""
+        if self.is_deployment:
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            conn.close()
+            return result is not None
+        else:
+            return username in self.credentials
+    
+    def check_user_verified(self, username):
+        """Check if a user is verified."""
+        if self.is_deployment:
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            cursor.execute("SELECT is_verified FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            conn.close()
+            return result is not None and result[0] == 1
+        else:
+            if username not in self.credentials:
+                return False
+            return self.credentials[username].get("is_verified", True)
+    
+    def get_user_email(self, username):
+        """Get a user's email address."""
+        if self.is_deployment:
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            cursor.execute("SELECT email FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            conn.close()
+            return result[0] if result else None
+        else:
+            if username not in self.credentials:
+                return None
+            return self.credentials[username].get("email")
+
+    def send_verification_email(self, email, username, token):
+        """Send a verification email to the user using Resend."""
+        try:
+            # Create verification URL
+            base_url = "http://localhost:8501"  # Hardcoded for testing
+            verification_url = f"{base_url}?verify={token}"
+            
+            # Always show the verification link as a fallback
+            st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
+            
+            # Use the same pattern as the successful test script
+            api_key = "re_GqtZRXhH_7EFuSJpn3AfU2rvf3KDg5tUp"
+            resend.api_key = api_key
+            
+            # Email content
+            html_content = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
+                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-bottom: 3px solid #4361EE;">
+                    <h1 style="color: #4361EE;">Welcome to TechMuse!</h1>
+                </div>
+                <div style="padding: 20px;">
+                    <p>Hello {username},</p>
+                    <p>Thank you for signing up. Please verify your email address by clicking the button below:</p>
+                    <p style="text-align: center;">
+                        <a href="{verification_url}" style="display: inline-block; background-color: #4361EE; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
+                    </p>
+                    <p>Or copy and paste this URL into your browser:</p>
+                    <p style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all;">{verification_url}</p>
+                    <p>This link will expire in 24 hours.</p>
+                    <p>If you did not sign up for TechMuse, please ignore this email.</p>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
+                    <p>&copy; 2025 TechMuse. All rights reserved.</p>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # In testing mode, Resend only allows sending to the verified email
+            verified_email = "ctrwillow@gmail.com"
+            
+            # Check if the user's email matches the verified email
+            if email.lower() == verified_email.lower():
+                # Send email using Resend - exact same pattern as test_resend.py
+                params = {
+                    "from": "onboarding@resend.dev",
+                    "to": email,
+                    "subject": "Verify Your TechMuse Account",
+                    "html": html_content,
+                }
+                
+                print(f"Sending verification email to verified address: {email}")
+                response = resend.Emails.send(params)
+                print(f"Response: {response}")
+                
+                if response and "id" in response:
+                    print(f"Email sent successfully with ID: {response['id']}")
+                    st.success(f"✉️ Verification email sent to {email}. Please check your inbox.")
+                    return True
+                else:
+                    print(f"Failed to send email: {response}")
+                    return False
+            else:
+                # For non-verified emails in testing mode, just show a message
+                print(f"Cannot send to {email} in testing mode. Only {verified_email} is allowed.")
+                st.warning(f"⚠️ In testing mode: Emails can only be sent to {verified_email}.")
+                st.info("Please use the verification link above to verify your account.")
+                return True  # Return true so the account creation continues
+                    
+        except Exception as e:
+            print(f"Error in send_verification_email: {str(e)}")
+            print(f"Error type: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
+            return False
 
 # Create a singleton instance
 authenticator = SimpleAuthenticator()
@@ -597,6 +1081,21 @@ def require_auth():
     # Check if the user is already authenticated
     if "authenticated" in st.session_state and st.session_state.authenticated:
         return st.session_state.name, st.session_state.username
+    
+    # Check for verification token in URL parameters
+    if "verify" in st.query_params:
+        token = st.query_params["verify"]
+        success, message = authenticator.verify_user(token)
+        if success:
+            st.success(message)
+            # Remove the token from the URL
+            st.query_params.clear()
+        else:
+            st.error(message)
+    
+    # Initialize session state for resend verification
+    if "show_resend" not in st.session_state:
+        st.session_state.show_resend = False
     
     # Create a clean login interface
     st.markdown("""
@@ -791,6 +1290,31 @@ def require_auth():
         # Welcome title without the container box
         st.markdown('<div class="welcome-title">Welcome to TechMuse</div>', unsafe_allow_html=True)
         
+        # Show resend verification form if needed
+        if st.session_state.show_resend:
+            with st.form("resend_verification_form"):
+                st.subheader("Resend Verification Email")
+                email = st.text_input("Email Address", placeholder="Enter your email address")
+                submit = st.form_submit_button("Resend Verification Email", use_container_width=True)
+                
+                if submit:
+                    if email:
+                        success, message = authenticator.resend_verification_email(email)
+                        if success:
+                            st.success(message)
+                            st.session_state.show_resend = False
+                        else:
+                            st.error(message)
+                    else:
+                        st.error("Please enter your email address")
+            
+            if st.button("Back to Login", use_container_width=True):
+                st.session_state.show_resend = False
+                st.rerun()
+            
+            # Stop execution to show only the resend form
+            st.stop()
+        
         # Create tabs for login and signup
         st.markdown(f"""
         <div class="auth-tabs">
@@ -821,20 +1345,44 @@ def require_auth():
                     st.session_state.auth_tab = "signup"
                     st.query_params.update(tab="signup")
                     st.rerun()
+                
+                # Add a link to resend verification email
+                if st.button("Didn't receive verification email?", key="to_resend", use_container_width=True):
+                    st.session_state.show_resend = True
+                    st.rerun()
             
                 # Check credentials when the login button is clicked
                 if login_button:
-                    # Use the authenticator to verify credentials
-                    if authenticator.verify_password(username, password):
-                        # Set session state to authenticated
-                        st.session_state.authenticated = True
-                        st.session_state.username = username
-                        st.session_state.name = authenticator.get_user_info(username)["name"]
-                        
-                        # Rerun the app to reflect the authenticated state
-                        st.rerun()
+                    if not username or not password:
+                        st.error("Please enter both username and password")
                     else:
-                        st.error("Invalid username or password")
+                        # Use the authenticator to verify credentials
+                        if authenticator.verify_password(username, password):
+                            # Set session state to authenticated
+                            st.session_state.authenticated = True
+                            st.session_state.username = username
+                            st.session_state.name = authenticator.get_user_info(username)["name"]
+                            
+                            # Rerun the app to reflect the authenticated state
+                            st.rerun()
+                        else:
+                            # Check if user exists but is not verified
+                            user_exists = authenticator.check_user_exists(username)
+                            is_verified = authenticator.check_user_verified(username)
+                            
+                            if user_exists and not is_verified:
+                                st.error("Your account has not been verified. Please check your email for a verification link or request a new one.")
+                                # Show option to resend verification email
+                                if st.button("Resend verification email", key="resend_from_login", use_container_width=True):
+                                    email = authenticator.get_user_email(username)
+                                    if email:
+                                        success, message = authenticator.resend_verification_email(email)
+                                        if success:
+                                            st.success(message)
+                                        else:
+                                            st.error(message)
+                            else:
+                                st.error("Invalid username or password")
         
         # Signup form
         else:
@@ -875,11 +1423,12 @@ def require_auth():
                     elif "@" not in email or "." not in email:
                         st.error("Please enter a valid email address")
                     else:
-                        # Add the new user
-                        success, message = authenticator.add_user(new_username, new_password, full_name, email)
+                        # Add the new user with verification required
+                        success, message = authenticator.add_user(new_username, new_password, full_name, email, require_verification=True)
                         if success:
                             st.success(message)
-                            st.info("You can now log in with your new credentials")
+                            st.info("Please check your email to verify your account.")
+                            # Switch to login tab
                             st.session_state.auth_tab = "login"
                             st.query_params.update(tab="login")
                             st.rerun()
@@ -903,21 +1452,3 @@ def require_auth():
     
     # Stop execution if not authenticated
     st.stop()
-
-def main():
-    # Check if the user is authenticated
-    if "authenticated" in st.session_state and st.session_state.authenticated:
-        # Display the main app content
-        st.title("Technical Blog Generator")
-        st.write("Welcome to the Technical Blog Generator!")
-        
-        # Add an admin page link for admins
-        if authenticator.is_admin(st.session_state.username):
-            if st.button("Admin Page"):
-                authenticator.show_admin_page()
-    else:
-        # Display the login form
-        authenticator.login()
-
-if __name__ == "__main__":
-    main()

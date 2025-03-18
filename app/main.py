@@ -1,8 +1,14 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from app.core.config import get_settings, Settings
+from core.config import get_settings, Settings
 import os
+import sys
+import pathlib
+
+# Add the parent directory to sys.path to enable imports
+parent_dir = pathlib.Path(__file__).parent.parent
+sys.path.append(str(parent_dir))
 
 # Load environment variables
 load_dotenv()

@@ -1,5 +1,12 @@
 import streamlit as st
 import markdown
+import sys
+import os
+
+# Add the project root directory to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from frontend.content_enhancer_ui import render_content_enhancer_ui
 
 def markdown_to_html(md_text, title):
     html_content = markdown.markdown(md_text, extensions=['fenced_code', 'tables'])
@@ -184,6 +191,43 @@ def save_blog(title: str, content: str, metadata: Dict) -> str:
         json.dump(index, f, indent=2)
     
     return blog_id
+
+# Update an existing blog in the local database
+def update_blog(blog_id: str, content: str) -> bool:
+    """
+    Update an existing blog post's content
+    
+    Parameters:
+    - blog_id: The ID of the blog to update
+    - content: The updated content
+    
+    Returns:
+    - True if successful, False otherwise
+    """
+    try:
+        # Update the content file
+        blog_file = SAVED_BLOGS_DIR / f"{blog_id}.md"
+        if not blog_file.exists():
+            return False
+            
+        with open(blog_file, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # Update the preview in the index
+        index = load_blogs_index()
+        for blog in index["blogs"]:
+            if blog["id"] == blog_id:
+                blog["preview"] = content[:200] + "..." if len(content) > 200 else content
+                blog["updated_at"] = datetime.datetime.now().isoformat()
+                break
+        
+        with open(SAVED_BLOGS_INDEX, 'w') as f:
+            json.dump(index, f, indent=2)
+            
+        return True
+    except Exception as e:
+        print(f"Error updating blog: {e}")
+        return False
 
 # Initialize all session state variables
 if 'content_generated' not in st.session_state:
@@ -1436,6 +1480,26 @@ with main_tab:
                 # Update session state when content changes
                 st.session_state.edited_content = edited_content
                 st.session_state.current_blog_content = edited_content
+                
+                # Add a save button
+                if st.button("💾 Save Changes", key="save_blog_changes_btn"):
+                    # Check if we're editing an existing blog
+                    if "editing_blog_id" in st.session_state and st.session_state.editing_blog_id:
+                        # Update existing blog
+                        if update_blog(st.session_state.editing_blog_id, edited_content):
+                            st.success("Blog post updated successfully!")
+                        else:
+                            st.error("Failed to update blog post.")
+                    else:
+                        # Save as new blog
+                        metadata = {
+                            "prompt": st.session_state.get("blog_prompt", ""),
+                            "tags": st.session_state.get("blog_tags", []),
+                            "author": st.session_state.get("username", "Anonymous")
+                        }
+                        blog_id = save_blog(st.session_state.current_blog_title, edited_content, metadata)
+                        st.session_state.editing_blog_id = blog_id
+                        st.success("Blog post saved successfully!")
             
             with preview_tab:
                 st.markdown("### Preview of Formatted Blog Post")
@@ -1492,9 +1556,31 @@ with main_tab:
             
             st.markdown('</div>', unsafe_allow_html=True)  # Close card container
             
-            # Save the blog to the local database
-            blog_id = save_blog(result['title'], result['content'], result['metadata'])
+            # Save the blog to the local database if not already saved
+            if "editing_blog_id" not in st.session_state or not st.session_state.editing_blog_id:
+                blog_id = save_blog(result['title'], st.session_state.edited_content, result['metadata'])
+                st.session_state.editing_blog_id = blog_id
+            else:
+                blog_id = st.session_state.editing_blog_id
             
+            # Add content enhancement UI
+            st.markdown("---")
+            enhanced_content = render_content_enhancer_ui(
+                st.session_state.current_blog_content,
+                on_update=lambda content: setattr(st.session_state, 'current_blog_content', content),
+                blog_id=blog_id
+            )
+            
+            # If content was enhanced, update the session state
+            if enhanced_content != st.session_state.current_blog_content:
+                st.session_state.current_blog_content = enhanced_content
+                
+                # Also update the current_result dictionary
+                if isinstance(st.session_state.current_result, dict) and 'content' in st.session_state.current_result:
+                    st.session_state.current_result['content'] = enhanced_content
+                
+                st.experimental_rerun()
+
         else:
             st.error("Please provide a topic")
 

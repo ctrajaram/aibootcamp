@@ -17,7 +17,7 @@ print(f"First few characters: {api_key[:5]}... (should start with 'sk-')")
 try:
     openai.api_key = api_key
     response = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o",
         messages=[{"role": "user", "content": "Hello, are you working?"}]
     )
     print("\nAPI TEST SUCCESSFUL!")

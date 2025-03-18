@@ -57,54 +57,100 @@ def get_email_sender():
 # Database setup
 def get_db_path():
     """Get the database path based on environment."""
-    # In production, use a path that will be persisted in the deployment
-    if os.getenv("STREAMLIT_DEPLOYMENT", "0") == "1":
-        # Use the .streamlit folder which is persistent in Streamlit Cloud
-        os.makedirs(os.path.join(os.path.expanduser("~"), ".streamlit"), exist_ok=True)
-        return os.path.join(os.path.expanduser("~"), ".streamlit", "techmuse.db")
+    # Check for deployment environment
+    is_deployment = False
+    
+    # Check environment variables
+    if os.getenv("DEPLOYMENT", "").lower() == "true":
+        is_deployment = True
+    elif os.getenv("STREAMLIT_DEPLOYMENT", "0") == "1":
+        is_deployment = True
+    elif os.getenv("STREAMLIT_SHARING", ""):
+        is_deployment = True
+    elif os.getenv("STREAMLIT_CLOUD", ""):
+        is_deployment = True
+    
+    # Check Streamlit secrets
+    if hasattr(st, "secrets") and "DEPLOYMENT" in st.secrets:
+        is_deployment = st.secrets["DEPLOYMENT"].lower() == "true"
+    
+    # Determine the path based on environment
+    if is_deployment:
+        # In Streamlit Cloud, use a path in the home directory
+        home_dir = os.path.expanduser("~")
+        db_dir = os.path.join(home_dir, ".streamlit")
+        os.makedirs(db_dir, exist_ok=True)
+        db_path = os.path.join(db_dir, "techmuse.db")
+        print(f"Using deployment database path: {db_path}")
+        return db_path
     else:
         # In development, use a local file
-        return "techmuse.db"
+        db_path = "techmuse.db"
+        print(f"Using development database path: {db_path}")
+        return db_path
 
 def init_db():
     """Initialize the database with required tables."""
-    conn = sqlite3.connect(get_db_path())
-    cursor = conn.cursor()
-    
-    # Create users table if it doesn't exist
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-        last_login TEXT,
-        is_verified INTEGER DEFAULT 0,
-        verification_token TEXT,
-        verification_expiry TEXT
-    )
-    ''')
-    
-    conn.commit()
-    
-    # Check if admin user exists, create if not
-    cursor.execute("SELECT * FROM users WHERE username = ?", (ADMIN_USERNAME,))
-    if cursor.fetchone() is None and ADMIN_USERNAME != "default_username":
-        # Create admin user
-        admin_id = str(uuid.uuid4())
-        now = datetime.now().isoformat()
-        hashed_password = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
+    try:
+        # Get database path
+        db_path = get_db_path()
+        print(f"Initializing database at: {db_path}")
         
+        # Ensure directory exists
+        db_dir = os.path.dirname(db_path)
+        if db_dir:  # Only create directory if path has a directory component
+            os.makedirs(db_dir, exist_ok=True)
+            print(f"Ensured database directory exists: {db_dir}")
+        
+        # Connect to database
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        print("Creating users table if it doesn't exist")
+        # Create users table if it doesn't exist
         cursor.execute('''
-        INSERT INTO users (id, username, password, name, email, created_at, is_verified)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
-        ''', (admin_id, ADMIN_USERNAME, hashed_password, "Administrator", "admin@example.com", now))
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            last_login TEXT,
+            is_verified INTEGER DEFAULT 0,
+            verification_token TEXT,
+            verification_expiry TEXT
+        )
+        ''')
         
         conn.commit()
-    
-    conn.close()
+        
+        # Check if admin user exists, create if not
+        print(f"Checking if admin user exists: {ADMIN_USERNAME}")
+        cursor.execute("SELECT * FROM users WHERE username = ?", (ADMIN_USERNAME,))
+        if cursor.fetchone() is None and ADMIN_USERNAME != "default_username":
+            # Create admin user
+            admin_id = str(uuid.uuid4())
+            now = datetime.now().isoformat()
+            hashed_password = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
+            
+            print(f"Creating admin user: {ADMIN_USERNAME}")
+            cursor.execute('''
+            INSERT INTO users (id, username, password, name, email, created_at, is_verified)
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+            ''', (admin_id, ADMIN_USERNAME, hashed_password, "Administrator", "admin@example.com", now))
+            
+            conn.commit()
+            print(f"Admin user created successfully: {ADMIN_USERNAME}")
+        
+        conn.close()
+        print("Database initialization completed successfully")
+        return True
+    except Exception as e:
+        print(f"Error in init_db: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 # Initialize the database
 init_db()
@@ -550,6 +596,14 @@ class SimpleAuthenticator:
         """Verify password against database."""
         conn = None
         try:
+            # Ensure database is initialized
+            self._init_db_if_needed()
+            
+            # Debug information
+            print(f"Verifying password for user: {username}")
+            print(f"Database path: {get_db_path()}")
+            
+            # Get database connection
             conn = self._get_db_connection()
             cursor = conn.cursor()
             
@@ -558,12 +612,14 @@ class SimpleAuthenticator:
             result = cursor.fetchone()
             
             if not result:
+                print(f"User not found in database: {username}")
                 return False
                 
             stored_password, is_verified = result
             
             # Check if user is verified
             if not is_verified:
+                print(f"User {username} is not verified")
                 return False
             
             # Verify the password
@@ -571,27 +627,35 @@ class SimpleAuthenticator:
             try:
                 if bcrypt and self._is_bcrypt_hash(stored_password):
                     # If stored password is already a bcrypt hash
+                    print(f"Using bcrypt verification for user: {username}")
                     if isinstance(stored_password, str):
                         stored_password = stored_password.encode()
                     password_verified = bcrypt.checkpw(password.encode(), stored_password)
                 else:
                     # If stored password is a sha256 hash (from before bcrypt was added)
+                    print(f"Using sha256 verification for user: {username}")
                     password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
             except Exception as e:
                 print(f"Error verifying password with bcrypt in _verify_password_db: {e}")
                 # Fallback to sha256
+                print(f"Falling back to sha256 verification for user: {username}")
                 password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
             
             # Update last login time if password matches
             if password_verified:
+                print(f"Password verified for user: {username}")
                 now = datetime.now().isoformat()
                 cursor.execute("UPDATE users SET last_login = ? WHERE username = ?", (now, username))
                 conn.commit()
+            else:
+                print(f"Password verification failed for user: {username}")
                 
             return password_verified
             
         except Exception as e:
             print(f"Error in _verify_password_db: {e}")
+            import traceback
+            traceback.print_exc()
             return False
         finally:
             if conn:
@@ -600,21 +664,39 @@ class SimpleAuthenticator:
     def get_user_info(self, username):
         """Get information about a user."""
         if self.is_deployment:
-            conn = sqlite3.connect(get_db_path())
-            cursor = conn.cursor()
-            cursor.execute("SELECT name, email, is_verified FROM users WHERE username = ?", (username,))
-            result = cursor.fetchone()
-            conn.close()
-            
-            if result is None:
+            try:
+                # Ensure database is initialized
+                self._init_db_if_needed()
+                
+                # Debug information
+                print(f"Getting user info for: {username}")
+                print(f"Database path: {get_db_path()}")
+                
+                # Get database connection
+                conn = sqlite3.connect(get_db_path())
+                cursor = conn.cursor()
+                
+                cursor.execute("SELECT name, email, is_verified FROM users WHERE username = ?", (username,))
+                result = cursor.fetchone()
+                conn.close()
+                
+                if result is None:
+                    print(f"User not found in database: {username}")
+                    return None
+                
+                name, email, is_verified = result
+                user_info = {
+                    "name": name,
+                    "email": email,
+                    "is_verified": bool(is_verified)
+                }
+                print(f"User info retrieved for {username}: {user_info}")
+                return user_info
+            except Exception as e:
+                print(f"Error in get_user_info: {e}")
+                import traceback
+                traceback.print_exc()
                 return None
-            
-            name, email, is_verified = result
-            return {
-                "name": name,
-                "email": email,
-                "is_verified": bool(is_verified)
-            }
         else:
             if username not in self.credentials:
                 return None
@@ -628,21 +710,38 @@ class SimpleAuthenticator:
     
     def _get_user_info_db(self, username):
         """Get user information from database."""
-        conn = sqlite3.connect(get_db_path())
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT name, email FROM users WHERE username = ?", (username,))
-        result = cursor.fetchone()
-        
-        conn.close()
-        
-        if result is None:
+        try:
+            # Ensure database is initialized
+            self._init_db_if_needed()
+            
+            # Debug information
+            print(f"Getting user info from DB for: {username}")
+            print(f"Database path: {get_db_path()}")
+            
+            # Get database connection
+            conn = sqlite3.connect(get_db_path())
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT name, email FROM users WHERE username = ?", (username,))
+            result = cursor.fetchone()
+            
+            conn.close()
+            
+            if result is None:
+                print(f"User not found in database: {username}")
+                return None
+            
+            user_info = {
+                "name": result[0],
+                "email": result[1]
+            }
+            print(f"User info retrieved from DB for {username}: {user_info}")
+            return user_info
+        except Exception as e:
+            print(f"Error in _get_user_info_db: {e}")
+            import traceback
+            traceback.print_exc()
             return None
-        
-        return {
-            "name": result[0],
-            "email": result[1]
-        }
     
     def login(self):
         """Display login form and handle authentication."""
@@ -953,24 +1052,72 @@ class SimpleAuthenticator:
     def check_user_exists(self, username):
         """Check if a user exists."""
         if self.is_deployment:
-            conn = sqlite3.connect(get_db_path())
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
-            result = cursor.fetchone()
-            conn.close()
-            return result is not None
+            try:
+                # Ensure database is initialized
+                self._init_db_if_needed()
+                
+                # Get database connection
+                conn = sqlite3.connect(get_db_path())
+                cursor = conn.cursor()
+                
+                # Debug information
+                print(f"Checking if user exists: {username}")
+                print(f"Database path: {get_db_path()}")
+                
+                cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+                result = cursor.fetchone()
+                conn.close()
+                
+                exists = result is not None
+                print(f"User {username} exists: {exists}")
+                return exists
+            except Exception as e:
+                print(f"Error in check_user_exists: {e}")
+                import traceback
+                traceback.print_exc()
+                # Return False on error to be safe
+                return False
         else:
             return username in self.credentials
     
     def check_user_verified(self, username):
         """Check if a user is verified."""
         if self.is_deployment:
-            conn = sqlite3.connect(get_db_path())
-            cursor = conn.cursor()
-            cursor.execute("SELECT is_verified FROM users WHERE username = ?", (username,))
-            result = cursor.fetchone()
-            conn.close()
-            return result is not None and result[0] == 1
+            try:
+                # Ensure database is initialized
+                self._init_db_if_needed()
+                
+                # Get database connection
+                conn = sqlite3.connect(get_db_path())
+                cursor = conn.cursor()
+                
+                # Debug information
+                print(f"Checking verification status for user: {username}")
+                print(f"Database path: {get_db_path()}")
+                
+                # Check if user exists first
+                cursor.execute("SELECT username FROM users WHERE username = ?", (username,))
+                user_exists = cursor.fetchone() is not None
+                
+                if not user_exists:
+                    print(f"User {username} not found in database")
+                    conn.close()
+                    return False
+                
+                # Now check verification status
+                cursor.execute("SELECT is_verified FROM users WHERE username = ?", (username,))
+                result = cursor.fetchone()
+                conn.close()
+                
+                verified = result is not None and result[0] == 1
+                print(f"User {username} verification status: {verified}")
+                return verified
+            except Exception as e:
+                print(f"Error in check_user_verified: {e}")
+                import traceback
+                traceback.print_exc()
+                # Return False on error to be safe
+                return False
         else:
             if username not in self.credentials:
                 return False
@@ -979,12 +1126,30 @@ class SimpleAuthenticator:
     def get_user_email(self, username):
         """Get a user's email address."""
         if self.is_deployment:
-            conn = sqlite3.connect(get_db_path())
-            cursor = conn.cursor()
-            cursor.execute("SELECT email FROM users WHERE username = ?", (username,))
-            result = cursor.fetchone()
-            conn.close()
-            return result[0] if result else None
+            try:
+                # Ensure database is initialized
+                self._init_db_if_needed()
+                
+                # Get database connection
+                conn = sqlite3.connect(get_db_path())
+                cursor = conn.cursor()
+                
+                # Debug information
+                print(f"Getting email for user: {username}")
+                print(f"Database path: {get_db_path()}")
+                
+                cursor.execute("SELECT email FROM users WHERE username = ?", (username,))
+                result = cursor.fetchone()
+                conn.close()
+                
+                email = result[0] if result else None
+                print(f"Email for user {username}: {email}")
+                return email
+            except Exception as e:
+                print(f"Error in get_user_email: {e}")
+                import traceback
+                traceback.print_exc()
+                return None
         else:
             if username not in self.credentials:
                 return None

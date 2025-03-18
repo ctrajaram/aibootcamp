@@ -123,7 +123,7 @@ class HallucinationChecker:
                 "has_hallucination": True,
                 "confidence": "Low",
                 "explanation": "No context available to verify response",
-                "warning": "⚠️ Unable to verify - No source information available",
+                "warning": "WARNING: Unable to verify - No source information available",
                 "sources": sources  # Include sources in the output
             }
         
@@ -207,13 +207,13 @@ Return your evaluation in JSON format."""
             if evaluation.get("has_hallucination", True):
                 faithfulness = evaluation.get("faithfulness", 0)
                 if faithfulness < 0.3:
-                    warning = "⚠️ HIGH RISK: Significant hallucinations detected. Verify information independently."
+                    warning = "WARNING: HIGH RISK: Significant hallucinations detected. Verify information independently."
                 elif faithfulness < 0.7:
-                    warning = "⚠️ CAUTION: Some information may not be supported by sources."
+                    warning = "WARNING: CAUTION: Some information may not be supported by sources."
                 else:
-                    warning = "⚠️ MINOR: Minor discrepancies detected, but most information is supported."
+                    warning = "WARNING: MINOR: Minor discrepancies detected, but most information is supported."
             else:
-                warning = "✅ VERIFIED: Response appears to be well-grounded in the provided sources."
+                warning = "VERIFIED: Response appears to be well-grounded in the provided sources."
             
             # Prepare final evaluation result
             result = {
@@ -242,7 +242,7 @@ Return your evaluation in JSON format."""
                 "confidence": "Low",
                 "explanation": f"Error evaluating response: {str(e)}",
                 "hallucinated_statements": ["Unable to evaluate due to error"],
-                "warning": "⚠️ ERROR: Unable to verify response due to technical issues",
+                "warning": "WARNING: ERROR: Unable to verify response due to technical issues",
                 "sources": sources  # Include sources in the output
             }
     
@@ -258,33 +258,43 @@ Return your evaluation in JSON format."""
         """
         print("Formatting evaluation results for display")
         
-        # Create header based on hallucination status
-        if evaluation.get("has_hallucination", True):
-            result = "\n\n**⚠️ Hallucination Check:**\n"
-        else:
-            result = "\n\n**✅ Hallucination Check:**\n"
-        
-        # Add main warning
-        result += f"{evaluation.get('warning', 'No assessment available')}\n\n"
-        
-        # Add scores
-        result += f"**Evaluation Scores:**\n"
-        result += f"- Faithfulness: {evaluation.get('faithfulness', 0):.2f}/1.00 ({evaluation.get('confidence', 'Low')} confidence)\n"
-        result += f"- Relevance: {evaluation.get('relevance', 0):.2f}/1.00\n"
-        
-        # Add hallucinated statements if any
-        hallucinated_statements = evaluation.get("hallucinated_statements", [])
-        if hallucinated_statements and len(hallucinated_statements) > 0 and hallucinated_statements[0] != "Unable to identify specific statements":
-            result += f"\n**Potentially Unsupported Statements:**\n"
-            for statement in hallucinated_statements:  # Show all statements
-                result += f"- {statement}\n"
-        
-        # Add sources
-        sources = evaluation.get("sources", [])
-        if sources:
-            result += f"\n**Sources Checked:**\n"
-            for i, source in enumerate(sources, 1):
-                result += f"{i}. {source}\n"
-        
-        print(f"Formatted results: {result[:100]}...")
-        return result
+        try:
+            # Create header based on hallucination status
+            if evaluation.get("has_hallucination", True):
+                result = "\n\n**Warning Hallucination Check:**\n"
+            else:
+                result = "\n\n**Verified Hallucination Check:**\n"
+            
+            # Add main warning - replace special characters with ASCII alternatives
+            warning = evaluation.get('warning', 'No assessment available')
+            # Replace special characters with ASCII alternatives
+            warning = warning.replace("⚠️", "WARNING:")
+            warning = warning.replace("✅", "VERIFIED:")
+            result += f"{warning}\n\n"
+            
+            # Add scores
+            result += f"**Evaluation Scores:**\n"
+            result += f"- Faithfulness: {evaluation.get('faithfulness', 0):.2f}/1.00 ({evaluation.get('confidence', 'Low')} confidence)\n"
+            result += f"- Relevance: {evaluation.get('relevance', 0):.2f}/1.00\n"
+            
+            # Add hallucinated statements if any
+            hallucinated_statements = evaluation.get("hallucinated_statements", [])
+            if hallucinated_statements and len(hallucinated_statements) > 0 and hallucinated_statements[0] != "Unable to identify specific statements":
+                result += f"\n**Potentially Unsupported Statements:**\n"
+                for statement in hallucinated_statements:  # Show all statements
+                    result += f"- {statement}\n"
+            
+            # Add sources
+            sources = evaluation.get("sources", [])
+            if sources:
+                result += f"\n**Sources Checked:**\n"
+                for i, source in enumerate(sources, 1):
+                    result += f"{i}. {source}\n"
+            
+            print(f"Formatted results: {result[:100]}...")
+            return result
+        except Exception as e:
+            import traceback
+            print(f"Error formatting evaluation results: {str(e)}")
+            traceback.print_exc()
+            return f"Error performing hallucination check: {str(e)}"

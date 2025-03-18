@@ -46,7 +46,27 @@ The system consists of:
    OPENAI_API_KEY=your_openai_api_key
    GOOGLE_API_KEY=your_google_api_key
    GOOGLE_CSE_ID=your_google_cse_id
+   
+   # Email verification configuration
+   RESEND_API_KEY=your_resend_api_key_here
+   RESEND_FROM_EMAIL=your_from_email_here
+   RESEND_FROM_NAME=TechMuse
+   BASE_URL=http://localhost:8501
+   EDUCATIONAL_MODE=false
+   VERIFIED_EMAIL=your_verified_email_here
    ```
+
+   You can copy the `.env.template` file to create your `.env` file:
+   ```bash
+   cp .env.template .env
+   ```
+   Then edit the `.env` file with your actual API keys and configuration.
+
+4. For Streamlit Cloud deployment, add these same variables to your Streamlit secrets:
+   - Go to your Streamlit Cloud dashboard
+   - Select your app
+   - Go to "Settings" > "Secrets"
+   - Add the same variables as in your `.env` file
 
 ## Usage
 

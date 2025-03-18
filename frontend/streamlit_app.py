@@ -265,7 +265,7 @@ st.markdown("""
         padding: var(--spacing-3);
         text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
         letter-spacing: -0.5px;
-        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23e0e0e0' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-.895-3-2-3-3 .895-3 2 .895 3 2 3zm63 31c1.657 0 3-1.343 3-3s-.895-3-2-3-3 .895-3 2 .895 3 2 3zM34 90c1.657 0 3-1.343 3-3s-.895-3-2-3-3 .895-3 2 .895 3 2 3zm56-76c1.657 0 3-1.343 3-3s-.895-3-2-3-3 .895-3 2 .895 3 2 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%23e0e0e0' fill-opacity='0.1' fill-rule='evenodd'/%3E%3C/svg%3E");
         background-position: center;
         border-radius: var(--radius-lg);
     }
@@ -369,18 +369,8 @@ st.markdown("""
     }
     
     @keyframes ripple {
-        0% {
-            transform: scale(0, 0);
-            opacity: 0.5;
-        }
-        20% {
-            transform: scale(25, 25);
-            opacity: 0.3;
-        }
-        100% {
-            opacity: 0;
-            transform: scale(40, 40);
-        }
+        from { opacity: 0; transform: scale(1); }
+        to { opacity: 1; transform: scale(40); }
     }
     
     /* Sign out button specific styling */
@@ -424,21 +414,25 @@ st.markdown("""
     
     /* Modern download button */
     .stDownloadButton button {
-        background-color: var(--success);
+        background-color: var(--primary);
         color: white;
         font-weight: 500;
         border-radius: 8px;
         box-shadow: var(--shadow-sm);
-        width: 200px !important;
-        height: 44px !important;
+        width: 100% !important;
+        height: 48px !important;
         margin: var(--spacing-2) auto !important;
         display: flex;
         align-items: center;
         justify-content: center;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.9rem;
     }
     
     .stDownloadButton button:hover {
-        background-color: #157347;
+        background-color: #3651d4;
         box-shadow: var(--shadow);
         transform: translateY(-2px);
     }
@@ -446,6 +440,23 @@ st.markdown("""
     .stDownloadButton button:active {
         transform: translateY(0);
         box-shadow: var(--shadow-sm);
+    }
+    
+    /* Different colors for different download buttons */
+    .markdown-download button {
+        background: linear-gradient(90deg, #4361EE, #3A0CA3);
+    }
+    
+    .markdown-download button:hover {
+        background: linear-gradient(90deg, #3651d4, #2f0a82);
+    }
+    
+    .html-download button {
+        background: linear-gradient(90deg, #7209B7, #560BAD);
+    }
+    
+    .html-download button:hover {
+        background: linear-gradient(90deg, #5c07a3, #4a099a);
     }
     
     /* Add icons to buttons using pseudo-elements */
@@ -467,48 +478,6 @@ st.markdown("""
     button[key="sidebar_logout_button"]:before {
         content: "🚪";
         margin-right: 8px;
-    }
-    
-    /* Visual indicators for complexity level */
-    .complexity-indicator {
-        display: inline-flex;
-        align-items: center;
-        margin-top: 5px;
-        background-color: var(--bg-light);
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-    
-    .complexity-beginner {
-        color: #0ca678;
-        border: 1px solid #0ca678;
-    }
-    
-    .complexity-beginner:before {
-        content: "🟢";
-        margin-right: 5px;
-    }
-    
-    .complexity-intermediate {
-        color: #f59f00;
-        border: 1px solid #f59f00;
-    }
-    
-    .complexity-intermediate:before {
-        content: "🟠";
-        margin-right: 5px;
-    }
-    
-    .complexity-advanced {
-        color: #e03131;
-        border: 1px solid #e03131;
-    }
-    
-    .complexity-advanced:before {
-        content: "🔴";
-        margin-right: 5px;
     }
     
     /* Modern section headers with icons */
@@ -826,10 +795,6 @@ st.markdown("""
         
         .description {
             font-size: 0.85rem !important;
-        }
-        
-        .complexity-indicator {
-            font-size: 0.75rem !important;
         }
         
         /* Make sidebar full width on very small screens */
@@ -1257,14 +1222,6 @@ with col1:
         value="intermediate",
         label_visibility="collapsed"  # Hide the label but keep it for accessibility
     )
-    
-    # Add visual indicator for selected complexity level
-    complexity_indicators = {
-        "beginner": """<div class="complexity-indicator complexity-beginner">Beginner-friendly content</div>""",
-        "intermediate": """<div class="complexity-indicator complexity-intermediate">Intermediate complexity</div>""",
-        "advanced": """<div class="complexity-indicator complexity-advanced">Advanced technical content</div>"""
-    }
-    st.markdown(complexity_indicators[depth], unsafe_allow_html=True)
 
 with col2:
     # Add cache control
@@ -1494,26 +1451,32 @@ with main_tab:
             col1, col2 = st.columns(2)
             
             with col1:
-                # Markdown download button
-                st.download_button(
-                    label="📥 Download as Markdown",
-                    data=st.session_state.edited_content,
-                    file_name=f"{topic.lower().replace(' ', '_')}_blog.md",
-                    mime="text/markdown",
-                    help="Download your blog post as a Markdown file",
-                    on_click=lambda: None  # Empty callback to prevent state reset
-                )
+                # Markdown download button with custom styling
+                with st.container():
+                    st.markdown('<div class="markdown-download">', unsafe_allow_html=True)
+                    st.download_button(
+                        label="📥 Download as Markdown",
+                        data=st.session_state.edited_content,
+                        file_name=f"{topic.lower().replace(' ', '_')}_blog.md",
+                        mime="text/markdown",
+                        help="Download your blog post as a Markdown file",
+                        on_click=lambda: None  # Empty callback to prevent state reset
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
             
             with col2:
-                # HTML download button
-                st.download_button(
-                    label="📄 Download as HTML",
-                    data=html_content,
-                    file_name=f"{topic.lower().replace(' ', '_')}_blog.html",
-                    mime="text/html",
-                    help="Download your blog post as an HTML file",
-                    on_click=lambda: None  # Empty callback to prevent state reset
-                )
+                # HTML download button with custom styling
+                with st.container():
+                    st.markdown('<div class="html-download">', unsafe_allow_html=True)
+                    st.download_button(
+                        label="📄 Download as HTML",
+                        data=html_content,
+                        file_name=f"{topic.lower().replace(' ', '_')}_blog.html",
+                        mime="text/html",
+                        help="Download your blog post as an HTML file",
+                        on_click=lambda: None  # Empty callback to prevent state reset
+                    )
+                    st.markdown('</div>', unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
             

@@ -294,15 +294,26 @@ class SimpleAuthenticator:
                     verification_token = self.generate_verification_token()
                     verification_expiry = (datetime.now() + timedelta(hours=24)).isoformat()
                 
+                # Generate a unique ID and current timestamp
+                user_id = str(uuid.uuid4())
+                created_at = datetime.now().isoformat()
+                
+                # Debug information
+                print(f"Adding new user: {username}")
+                print(f"User ID: {user_id}")
+                print(f"Created at: {created_at}")
+                
                 # Add the new user
                 cursor.execute('''
-                INSERT INTO users (username, password, name, email, is_verified, verification_token, verification_expiry)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (id, username, password, name, email, created_at, is_verified, verification_token, verification_expiry)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
+                    user_id,
                     username, 
                     self.hash_password(password), 
                     name, 
-                    email, 
+                    email,
+                    created_at,
                     0 if require_verification else 1,  # 0 = not verified, 1 = verified
                     verification_token, 
                     verification_expiry
@@ -326,6 +337,9 @@ class SimpleAuthenticator:
                     return True, "Account created successfully."
             
             except Exception as e:
+                print(f"Error adding user: {str(e)}")
+                import traceback
+                traceback.print_exc()
                 conn.close()
                 return False, f"Error adding user: {str(e)}"
         else:

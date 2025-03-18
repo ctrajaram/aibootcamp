@@ -21,13 +21,6 @@ import requests
 import resend
 from dotenv import load_dotenv
 
-# Set Resend API key directly
-os.environ["RESEND_API_KEY"] = "re_GqtZRXhH_7EFuSJpn3AfU2rvf3KDg5tUp"
-os.environ["RESEND_FROM_EMAIL"] = "onboarding@resend.dev"
-os.environ["RESEND_FROM_NAME"] = "TechMuse"
-os.environ["BASE_URL"] = "http://localhost:8501"
-os.environ["EDUCATIONAL_MODE"] = "false"
-
 # Load environment variables
 load_dotenv()
 
@@ -116,118 +109,98 @@ def init_db():
 # Initialize the database
 init_db()
 
-# Email sending functions
-def send_verification_email(email, username, token):
-    """Send a verification email to the user using Resend."""
-    try:
-        # Create verification URL
-        base_url = "http://localhost:8501"  # Hardcoded for testing
-        verification_url = f"{base_url}?verify={token}"
-        
-        # Always show the verification link as a fallback
-        st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
-        
-        # Use the same pattern as the successful test script
-        api_key = "re_GqtZRXhH_7EFuSJpn3AfU2rvf3KDg5tUp"
-        resend.api_key = api_key
-        
-        # Email content
-        html_content = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
-            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-bottom: 3px solid #4361EE;">
-                <h1 style="color: #4361EE;">Welcome to TechMuse!</h1>
-            </div>
-            <div style="padding: 20px;">
-                <p>Hello {username},</p>
-                <p>Thank you for signing up. Please verify your email address by clicking the button below:</p>
-                <p style="text-align: center;">
-                    <a href="{verification_url}" style="display: inline-block; background-color: #4361EE; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
-                </p>
-                <p>Or copy and paste this URL into your browser:</p>
-                <p style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all;">{verification_url}</p>
-                <p>This link will expire in 24 hours.</p>
-                <p>If you did not sign up for TechMuse, please ignore this email.</p>
-            </div>
-            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-                <p>&copy; 2025 TechMuse. All rights reserved.</p>
-            </div>
-        </body>
-        </html>
-        """
-        
-        # In testing mode, Resend only allows sending to the verified email
-        verified_email = "ctrwillow@gmail.com"
-        
-        # Check if the user's email matches the verified email
-        if email.lower() == verified_email.lower():
-            # Send email using Resend - exact same pattern as test_resend.py
-            params = {
-                "from": "onboarding@resend.dev",
-                "to": email,
-                "subject": "Verify Your TechMuse Account",
-                "html": html_content,
-            }
-            
-            print(f"Sending verification email to verified address: {email}")
-            response = resend.Emails.send(params)
-            print(f"Response: {response}")
-            
-            if response and "id" in response:
-                print(f"Email sent successfully with ID: {response['id']}")
-                st.success(f"✉️ Verification email sent to {email}. Please check your inbox.")
-                return True
-            else:
-                print(f"Failed to send email: {response}")
-                return False
-        else:
-            # For non-verified emails in testing mode, just show a message
-            print(f"Cannot send to {email} in testing mode. Only {verified_email} is allowed.")
-            st.warning(f"⚠️ In testing mode: Emails can only be sent to {verified_email}.")
-            st.info("Please use the verification link above to verify your account.")
-            return True  # Return true so the account creation continues
-                
-    except Exception as e:
-        print(f"Error in send_verification_email: {str(e)}")
-        print(f"Error type: {type(e).__name__}")
-        import traceback
-        traceback.print_exc()
-        return False
-
 class SimpleAuthenticator:
     def __init__(self):
         """Initialize the authenticator with credentials from database or file."""
-        self.credentials_path = Path("auth_credentials.pkl")
+        # Check if we're in deployment mode
+        self.is_deployment = os.getenv("DEPLOYMENT", "false").lower() == "true"
+        if hasattr(st, "secrets") and "DEPLOYMENT" in st.secrets:
+            self.is_deployment = st.secrets["DEPLOYMENT"].lower() == "true"
         
-        # Check if we're in production (environment variables or secrets set)
-        self.is_production = (ADMIN_USERNAME != "default_username" and 
-                             ADMIN_PASSWORD != "default_password")
+        # Get admin credentials
+        self.admin_username = os.getenv("ADMIN_USERNAME", "")
+        self.admin_password = os.getenv("ADMIN_PASSWORD", "")
         
-        # Check if we're in a Streamlit deployment
-        self.is_deployment = os.getenv("STREAMLIT_DEPLOYMENT", "0") == "1"
+        if hasattr(st, "secrets"):
+            if not self.admin_username and "ADMIN_USERNAME" in st.secrets:
+                self.admin_username = st.secrets["ADMIN_USERNAME"]
+            if not self.admin_password and "ADMIN_PASSWORD" in st.secrets:
+                self.admin_password = st.secrets["ADMIN_PASSWORD"]
         
-        if not self.is_deployment:
-            # In local development, use the file for backward compatibility
-            if not self.credentials_path.exists():
-                self.create_default_credentials()
+        # Initialize Resend API key from environment or secrets
+        try:
+            # Try to get API key from environment or Streamlit secrets
+            resend_api_key = os.getenv("RESEND_API_KEY", "")
+            if not resend_api_key and hasattr(st, "secrets"):
+                resend_api_key = st.secrets.get("RESEND_API_KEY", "")
             
-            # Load credentials from file
-            self.credentials = self.load_credentials()
+            # Set the API key if available
+            if resend_api_key:
+                resend.api_key = resend_api_key
+                print("Resend API key configured successfully")
+            else:
+                print("WARNING: Resend API key not found in environment or secrets")
+        except Exception as e:
+            print(f"Error initializing Resend API key: {e}")
+        
+        if self.is_deployment:
+            # In deployment mode, use SQLite database
+            self._init_db_if_needed()
+            self.credentials = {}  # Not used in deployment mode
         else:
-            # In deployment, we'll use the database directly
-            # We don't need to load credentials into memory
-            self.credentials = {}
+            # In development mode, use file-based credentials
+            self.credentials_dir = Path(__file__).parent.parent / "data"
+            self.credentials_dir.mkdir(exist_ok=True)
+            self.credentials_path = self.credentials_dir / "credentials.pkl"
+            
+            if self.credentials_path.exists():
+                with open(self.credentials_path, "rb") as f:
+                    self.credentials = pickle.load(f)
+            else:
+                # Create default admin user
+                self.credentials = {
+                    "admin": {
+                        "name": "Admin User",
+                        "password": self.hash_password("password"),
+                        "email": "admin@example.com",
+                        "is_verified": True
+                    }
+                }
+                
+                # Add configured admin user if different from default
+                if self.admin_username and self.admin_username != "admin":
+                    self.credentials[self.admin_username] = {
+                        "name": "Administrator",
+                        "password": self.hash_password(self.admin_password or "password"),
+                        "email": f"{self.admin_username}@example.com",
+                        "is_verified": True
+                    }
+                
+                self._save_credentials()
     
     def create_default_credentials(self):
         """Create default credentials file with admin user."""
+        admin_password = "admin"
+        if self.admin_password:
+            admin_password = self.admin_password
+            
         default_credentials = {
             "admin": {
                 "name": "Administrator",
-                "password": self.hash_password("admin"),
+                "password": self.hash_password(admin_password),
                 "email": "admin@example.com",
                 "is_verified": True
             }
         }
+        
+        # Add configured admin user if different from default
+        if self.admin_username and self.admin_username != "admin":
+            default_credentials[self.admin_username] = {
+                "name": "Administrator",
+                "password": self.hash_password(self.admin_password),
+                "email": f"{self.admin_username}@example.com",
+                "is_verified": True
+            }
         
         with open(self.credentials_path, "wb") as f:
             pickle.dump(default_credentials, f)
@@ -596,13 +569,18 @@ class SimpleAuthenticator:
             
             # Verify the password
             password_verified = False
-            if bcrypt and self._is_bcrypt_hash(stored_password):
-                # If stored password is already a bcrypt hash
-                if isinstance(stored_password, str):
-                    stored_password = stored_password.encode()
-                password_verified = bcrypt.checkpw(password.encode(), stored_password)
-            else:
-                # If stored password is a sha256 hash (from before bcrypt was added)
+            try:
+                if bcrypt and self._is_bcrypt_hash(stored_password):
+                    # If stored password is already a bcrypt hash
+                    if isinstance(stored_password, str):
+                        stored_password = stored_password.encode()
+                    password_verified = bcrypt.checkpw(password.encode(), stored_password)
+                else:
+                    # If stored password is a sha256 hash (from before bcrypt was added)
+                    password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
+            except Exception as e:
+                print(f"Error verifying password with bcrypt in _verify_password_db: {e}")
+                # Fallback to sha256
                 password_verified = stored_password == hashlib.sha256(password.encode()).hexdigest()
             
             # Update last login time if password matches
@@ -868,33 +846,32 @@ class SimpleAuthenticator:
     
     def is_admin(self, username):
         """Check if the user is an admin."""
-        # In deployment, check against database
+        if not username:
+            return False
+            
         if self.is_deployment:
-            # For simplicity, we'll consider the first user as admin
-            # In a real app, you'd have a role field in the database
+            # In deployment mode, check the database
             conn = sqlite3.connect(get_db_path())
             cursor = conn.cursor()
             
-            cursor.execute("SELECT id FROM users ORDER BY created_at ASC LIMIT 1")
+            # Get the first user (admin)
+            cursor.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1")
             first_user = cursor.fetchone()
             
-            if not first_user:
-                conn.close()
-                return False
-            
+            # Get the current user
             cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
             current_user = cursor.fetchone()
             
             conn.close()
             
-            if not current_user:
+            if not first_user or not current_user:
                 return False
             
             # The first user is admin
             return current_user[0] == first_user[0]
         
         # In local development, admin user is admin
-        return username == "admin" or (self.is_production and username == ADMIN_USERNAME)
+        return username == "admin" or (self.admin_username and username == self.admin_username)
     
     def get_all_users(self):
         """Get all users from the database."""
@@ -1017,15 +994,51 @@ class SimpleAuthenticator:
     def send_verification_email(self, email, username, token):
         """Send a verification email to the user using Resend."""
         try:
+            # Get configuration from Streamlit secrets or environment variables
+            api_key = os.getenv("RESEND_API_KEY", "")
+            if not api_key and hasattr(st, "secrets") and "RESEND_API_KEY" in st.secrets:
+                api_key = st.secrets["RESEND_API_KEY"]
+                
+            from_email = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+            if hasattr(st, "secrets") and "RESEND_FROM_EMAIL" in st.secrets:
+                from_email = st.secrets["RESEND_FROM_EMAIL"]
+                
+            from_name = os.getenv("RESEND_FROM_NAME", "TechMuse")
+            if hasattr(st, "secrets") and "RESEND_FROM_NAME" in st.secrets:
+                from_name = st.secrets["RESEND_FROM_NAME"]
+            
+            # Determine if we're running on Streamlit Cloud
+            is_cloud = (
+                "STREAMLIT_SHARING" in os.environ or 
+                "STREAMLIT_CLOUD" in os.environ or
+                os.getenv("DEPLOYMENT", "").lower() == "true" or
+                (hasattr(st, "secrets") and st.secrets.get("DEPLOYMENT", "").lower() == "true")
+            )
+            
+            # Set the base URL based on environment
+            if is_cloud:
+                # For Streamlit Cloud, use the deployment URL
+                base_url = os.getenv("BASE_URL", "https://techmuse.streamlit.app")
+                if hasattr(st, "secrets") and "BASE_URL" in st.secrets:
+                    base_url = st.secrets["BASE_URL"]
+            else:
+                # For local development
+                base_url = "http://localhost:8501"
+                if hasattr(st, "secrets") and "BASE_URL" in st.secrets:
+                    base_url = st.secrets["BASE_URL"]
+            
             # Create verification URL
-            base_url = "http://localhost:8501"  # Hardcoded for testing
             verification_url = f"{base_url}?verify={token}"
             
-            # Always show the verification link as a fallback
-            st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
+            # Always show the verification link in local development
+            if not is_cloud:
+                st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
             
-            # Use the same pattern as the successful test script
-            api_key = "re_GqtZRXhH_7EFuSJpn3AfU2rvf3KDg5tUp"
+            # Set Resend API key
+            if not api_key:
+                st.warning("⚠️ Resend API key not configured. Email verification will not work.")
+                return False
+                
             resend.api_key = api_key
             
             # Email content
@@ -1053,20 +1066,27 @@ class SimpleAuthenticator:
             </html>
             """
             
-            # In testing mode, Resend only allows sending to the verified email
-            verified_email = "ctrwillow@gmail.com"
+            # In development/testing mode, Resend only allows sending to verified emails
+            verified_email = os.getenv("VERIFIED_EMAIL", "")
+            if not verified_email and hasattr(st, "secrets"):
+                verified_email = st.secrets.get("VERIFIED_EMAIL", st.secrets.get("email", ""))
             
-            # Check if the user's email matches the verified email
-            if email.lower() == verified_email.lower():
-                # Send email using Resend - exact same pattern as test_resend.py
+            if not verified_email:
+                verified_email = "ctrwillow@gmail.com"  # Fallback default
+            
+            # Determine if we should actually send the email
+            should_send_email = is_cloud or (email.lower() == verified_email.lower())
+            
+            if should_send_email:
+                # Send email using Resend
                 params = {
-                    "from": "onboarding@resend.dev",
+                    "from": f"{from_name} <{from_email}>",
                     "to": email,
                     "subject": "Verify Your TechMuse Account",
                     "html": html_content,
                 }
                 
-                print(f"Sending verification email to verified address: {email}")
+                print(f"Sending verification email to: {email}")
                 response = resend.Emails.send(params)
                 print(f"Response: {response}")
                 
@@ -1076,10 +1096,11 @@ class SimpleAuthenticator:
                     return True
                 else:
                     print(f"Failed to send email: {response}")
+                    st.error("Failed to send verification email. Please use the verification link above.")
                     return False
             else:
                 # For non-verified emails in testing mode, just show a message
-                print(f"Cannot send to {email} in testing mode. Only {verified_email} is allowed.")
+                print(f"Cannot send to {email} in local mode. Only {verified_email} is allowed.")
                 st.warning(f"⚠️ In testing mode: Emails can only be sent to {verified_email}.")
                 st.info("Please use the verification link above to verify your account.")
                 return True  # Return true so the account creation continues
@@ -1089,6 +1110,8 @@ class SimpleAuthenticator:
             print(f"Error type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
+            st.error(f"Error sending verification email: {str(e)}")
+            st.info("Please use the verification link above to verify your account.")
             return False
 
     def _is_bcrypt_hash(self, password_hash):

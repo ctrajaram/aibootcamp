@@ -163,6 +163,12 @@ class ContentEnhancer:
         # Create the full prompt with explicit instructions to make changes
         full_prompt = f"{prompt}\n\nContent:\n{content}\n\nYou MUST make significant changes to the content. Return the enhanced version with meaningful additions or modifications. Do not return the original text unchanged."
         
+        # Check if we should use mock enhancement (for testing when API is unavailable)
+        use_mock = os.environ.get("USE_MOCK_ENHANCEMENT", "false").lower() == "true"
+        
+        if use_mock:
+            return self._mock_enhance_content(content, enhancement_type)
+        
         # Generate enhanced content using OpenAI
         try:
             logger.info(f"Calling OpenAI API with enhancement type: {enhancement_type}")
@@ -170,8 +176,8 @@ class ContentEnhancer:
             # Use the OpenAI API client
             import openai
             
-            # First try the newer client format
             try:
+                # Try using the newer OpenAI client format
                 client = openai.OpenAI(api_key=self.api_key)
                 response = client.chat.completions.create(
                     model="gpt-4o",
@@ -184,18 +190,21 @@ class ContentEnhancer:
                 )
                 enhanced_content = response.choices[0].message.content.strip()
             except Exception as e:
-                logger.warning(f"Error with newer OpenAI client format: {str(e)}")
-                # Fall back to the older format
-                response = openai.ChatCompletion.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": "You are a skilled content editor and writer. Your task is to enhance content according to specific instructions. You MUST make significant changes to the content."},
-                        {"role": "user", "content": full_prompt}
-                    ],
-                    max_tokens=4000,
-                    temperature=0.7
-                )
-                enhanced_content = response.choices[0].message.content.strip()
+                error_message = str(e)
+                logger.warning(f"Error with OpenAI client: {error_message}")
+                
+                # Check for quota errors
+                if "quota" in error_message.lower() or "insufficient_quota" in error_message.lower():
+                    logger.warning("OpenAI API quota exceeded, using mock enhancement")
+                    return self._mock_enhance_content(content, enhancement_type)
+                
+                # Check for rate limit errors
+                if "rate limit" in error_message.lower() or "rate_limit" in error_message.lower():
+                    logger.warning("OpenAI API rate limit reached, using mock enhancement")
+                    return self._mock_enhance_content(content, enhancement_type)
+                
+                # For other errors, return the original content with a message
+                return f"{content}\n\n[Error enhancing content: {error_message}]"
             
             # Check if content was actually enhanced
             if enhanced_content == content:
@@ -205,7 +214,6 @@ class ContentEnhancer:
                 
                 try:
                     # Try again with a stronger prompt
-                    client = openai.OpenAI(api_key=self.api_key)
                     response = client.chat.completions.create(
                         model="gpt-4o",
                         messages=[
@@ -217,14 +225,73 @@ class ContentEnhancer:
                     )
                     enhanced_content = response.choices[0].message.content.strip()
                 except Exception:
-                    # If retry fails, use the original content with a message
-                    enhanced_content = f"{content}\n\n✨ Your content is already well-crafted! The AI analysis suggests it's already optimized for this enhancement type. You might want to try a different enhancement option."
+                    # If retry fails, use mock enhancement
+                    logger.warning("Retry failed, using mock enhancement")
+                    return self._mock_enhance_content(content, enhancement_type)
             
             return enhanced_content
         except Exception as e:
             logger.error(f"Error enhancing content: {str(e)}")
-            # Return original content if enhancement fails
-            return content
+            # Return mock enhancement if API fails
+            logger.warning("API error, using mock enhancement")
+            return self._mock_enhance_content(content, enhancement_type)
+    
+    def _mock_enhance_content(self, content: str, enhancement_type: str) -> str:
+        """
+        Create a mock enhanced version of the content for testing purposes
+        
+        Parameters:
+        ----------
+        content : str
+            The content to enhance
+        enhancement_type : str
+            The type of enhancement to apply
+            
+        Returns:
+        -------
+        str
+            The mock enhanced content
+        """
+        # Split content into sections
+        sections = content.split("\n\n")
+        enhanced_sections = []
+        
+        for section in sections:
+            # Skip empty sections
+            if not section.strip():
+                enhanced_sections.append(section)
+                continue
+                
+            # Add mock enhancements based on the enhancement type
+            if enhancement_type == "detail":
+                enhanced_sections.append(section)
+                enhanced_sections.append(f"[MOCK DETAIL] Additional information about {section.split()[0] if section.split() else 'this topic'}: This section has been enhanced with more detailed information to provide a comprehensive understanding of the concept.")
+            
+            elif enhancement_type == "example":
+                enhanced_sections.append(section)
+                enhanced_sections.append(f"[MOCK EXAMPLE] For instance, if we consider {section.split()[0] if section.split() else 'this concept'} in a real-world scenario: Here's an example that illustrates how this works in practice.")
+            
+            elif enhancement_type == "technical":
+                enhanced_sections.append(section)
+                enhanced_sections.append(f"[MOCK TECHNICAL] From a technical perspective, {section.split()[0] if section.split() else 'this'} involves several advanced concepts: The implementation requires understanding of the underlying architecture and protocols.")
+            
+            elif enhancement_type == "simplified":
+                enhanced_sections.append(f"[MOCK SIMPLIFIED] {section} - In simpler terms, this means that the process works by following a straightforward approach that anyone can understand.")
+            
+            elif enhancement_type == "counterpoint":
+                enhanced_sections.append(section)
+                enhanced_sections.append(f"[MOCK COUNTERPOINT] However, some experts disagree with this approach: An alternative perspective suggests that there are other factors to consider when evaluating {section.split()[0] if section.split() else 'this topic'}.")
+            
+            else:
+                enhanced_sections.append(section)
+        
+        # Join the enhanced sections
+        enhanced_content = "\n\n".join(enhanced_sections)
+        
+        # Add a note at the end
+        enhanced_content += "\n\n[NOTE: This content was enhanced using a mock enhancement because the OpenAI API was unavailable. The enhancements are placeholders for demonstration purposes.]"
+        
+        return enhanced_content
 
 
 # Example usage

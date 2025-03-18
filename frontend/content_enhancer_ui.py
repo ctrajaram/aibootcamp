@@ -49,6 +49,9 @@ def render_content_enhancer_ui(content, on_update=None, blog_id=None):
         unsafe_allow_html=True
     )
     
+    # Debug information
+    st.markdown(f"<div style='display:none;'>Debug: Content length: {len(content)}, Blog ID: {blog_id}</div>", unsafe_allow_html=True)
+    
     # Create columns for the enhancement buttons
     col1, col2, col3, col4, col5 = st.columns(5)
     
@@ -130,16 +133,52 @@ def render_content_enhancer_ui(content, on_update=None, blog_id=None):
     
     # Show save button if content was updated and we have a blog_id
     if content_updated and blog_id:
+        # Debug info
+        st.markdown(f"<div style='display:none;'>Debug: Content updated: {content_updated}, Blog ID: {blog_id}, Content length: {len(updated_content)}</div>", unsafe_allow_html=True)
+        
         if st.button("Save Changes to Blog", key="save_blog_changes"):
             from frontend.streamlit_app import update_blog
+            
+            # Debug info before update
+            st.markdown(f"<div style='display:none;'>Debug: Before update - Content length: {len(updated_content)}</div>", unsafe_allow_html=True)
+            
             if update_blog(blog_id, updated_content):
                 st.success("Blog post updated successfully!")
+                
+                # Debug info after update
+                st.markdown(f"<div style='display:none;'>Debug: After update - Content saved to database</div>", unsafe_allow_html=True)
+                
+                # Update the session state with the enhanced content
+                if 'current_blog_content' in st.session_state:
+                    st.session_state.current_blog_content = updated_content
+                    st.markdown(f"<div style='display:none;'>Debug: Updated current_blog_content in session state</div>", unsafe_allow_html=True)
+                
+                # Also update the current_result dictionary
+                if 'current_result' in st.session_state and isinstance(st.session_state.current_result, dict) and 'content' in st.session_state.current_result:
+                    st.session_state.current_result['content'] = updated_content
+                    st.markdown(f"<div style='display:none;'>Debug: Updated current_result in session state</div>", unsafe_allow_html=True)
+                
+                # Force a rerun to refresh the UI with the updated content
+                st.experimental_rerun()
             else:
                 st.error("Failed to update blog post.")
+                st.markdown(f"<div style='display:none;'>Debug: Failed to update blog</div>", unsafe_allow_html=True)
     
     # Call the update callback if content was updated
     if content_updated and on_update:
-        on_update(updated_content)
+        try:
+            # Call the callback with the updated content
+            on_update(updated_content)
+            
+            # Also update session state directly if possible
+            if 'current_blog_content' in st.session_state:
+                st.session_state.current_blog_content = updated_content
+                
+            # Update the current_result dictionary if it exists
+            if 'current_result' in st.session_state and isinstance(st.session_state.current_result, dict) and 'content' in st.session_state.current_result:
+                st.session_state.current_result['content'] = updated_content
+        except Exception as e:
+            st.error(f"Error updating content: {str(e)}")
     
     return updated_content if content_updated else content
 
@@ -154,6 +193,24 @@ def show_content_comparison(original, enhanced):
     enhanced : str
         The enhanced content
     """
+    # Check if this is a mock enhancement
+    if "[NOTE: This content was enhanced using a mock enhancement" in enhanced:
+        st.warning("⚠️ Using mock enhancement because the OpenAI API is unavailable. The enhancements are placeholders for demonstration purposes.")
+    
+    # Check if there's an error message in the enhanced content
+    if "[OpenAI API quota exceeded" in enhanced:
+        st.error("⚠️ OpenAI API quota exceeded. Please check your API key and billing details.")
+        return
+    
+    if "[OpenAI API rate limit reached" in enhanced:
+        st.warning("⏱️ OpenAI API rate limit reached. Please try again in a few moments.")
+        return
+    
+    if "[Error enhancing content:" in enhanced:
+        error_msg = enhanced.split("[Error enhancing content:")[1].split("]")[0].strip()
+        st.error(f"⚠️ Error enhancing content: {error_msg}")
+        return
+    
     # Check if content is identical
     if original == enhanced:
         st.info("✨ It looks like your content is already well-crafted! The AI didn't suggest any changes. You might want to try a different enhancement option or modify your content first.")

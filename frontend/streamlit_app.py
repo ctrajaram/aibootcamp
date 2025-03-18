@@ -208,25 +208,49 @@ def update_blog(blog_id: str, content: str) -> bool:
         # Update the content file
         blog_file = SAVED_BLOGS_DIR / f"{blog_id}.md"
         if not blog_file.exists():
+            print(f"Error: Blog file not found: {blog_file}")
             return False
             
+        # Debug info
+        print(f"Updating blog {blog_id} with content length: {len(content)}")
+        
+        # Write the content to the file
         with open(blog_file, 'w', encoding='utf-8') as f:
             f.write(content)
         
         # Update the preview in the index
         index = load_blogs_index()
+        blog_found = False
+        
         for blog in index["blogs"]:
             if blog["id"] == blog_id:
+                blog_found = True
                 blog["preview"] = content[:200] + "..." if len(content) > 200 else content
                 blog["updated_at"] = datetime.datetime.now().isoformat()
                 break
         
-        with open(SAVED_BLOGS_INDEX, 'w') as f:
+        if not blog_found:
+            print(f"Warning: Blog {blog_id} not found in index")
+        
+        # Save the updated index
+        with open(SAVED_BLOGS_INDEX, 'w', encoding='utf-8') as f:
             json.dump(index, f, indent=2)
             
+        # Update session state if applicable
+        if 'current_blog_content' in st.session_state:
+            st.session_state.current_blog_content = content
+            print(f"Updated current_blog_content in session state")
+            
+        if 'edited_content' in st.session_state:
+            st.session_state.edited_content = content
+            print(f"Updated edited_content in session state")
+            
+        print(f"Blog {blog_id} updated successfully")
         return True
     except Exception as e:
-        print(f"Error updating blog: {e}")
+        print(f"Error updating blog: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 # Initialize all session state variables
@@ -1573,12 +1597,20 @@ with main_tab:
             
             # If content was enhanced, update the session state
             if enhanced_content != st.session_state.current_blog_content:
+                # Update session state
                 st.session_state.current_blog_content = enhanced_content
+                
+                # Update edited_content to match the enhanced content
+                st.session_state.edited_content = enhanced_content
                 
                 # Also update the current_result dictionary
                 if isinstance(st.session_state.current_result, dict) and 'content' in st.session_state.current_result:
                     st.session_state.current_result['content'] = enhanced_content
                 
+                # Update the blog in the database
+                update_blog(blog_id, enhanced_content)
+                
+                # Force a rerun to refresh the UI
                 st.experimental_rerun()
 
         else:

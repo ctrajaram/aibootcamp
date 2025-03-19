@@ -158,9 +158,10 @@ def load_blogs_index() -> Dict:
         return {"blogs": []}
 
 # Save a blog to the local database
-def save_blog(title: str, content: str, metadata: Dict) -> str:
+def save_blog(title: str, content: str, metadata: Dict, blog_id: str = None) -> str:
     # Generate a unique ID
-    blog_id = str(uuid.uuid4())
+    if not blog_id:
+        blog_id = str(uuid.uuid4())
     
     # Create a blog entry
     blog_entry = {
@@ -178,7 +179,8 @@ def save_blog(title: str, content: str, metadata: Dict) -> str:
     
     # Update the index
     index = load_blogs_index()
-    index["blogs"].append(blog_entry)
+    if blog_id not in [b['id'] for b in index["blogs"]]:
+        index["blogs"].append(blog_entry)
     
     with open(SAVED_BLOGS_INDEX, 'w') as f:
         json.dump(index, f, indent=2)
@@ -196,6 +198,8 @@ if 'current_blog_content' not in st.session_state:
     st.session_state.current_blog_content = ""
 if 'current_blog_title' not in st.session_state:
     st.session_state.current_blog_title = ""
+if 'current_blog_id' not in st.session_state:
+    st.session_state.current_blog_id = ""
 
 # Custom CSS for styling
 st.markdown("""
@@ -1411,15 +1415,8 @@ with main_tab:
             with st.container():
                 st.markdown("## 📝 Generated Blog Post")
                 
-                # Display metadata in an expander
-                with st.expander("Content Metadata"):
-                    st.markdown(f"**Title:** {st.session_state.current_blog_title}")
-                    st.markdown(f"**Depth:** {result['depth']}")
-                    st.markdown(f"**Keywords:** {', '.join(result['keywords']) if result['keywords'] else 'None'}")
-                    # ... other metadata
-            
-            # Display the title
-            st.markdown(f"# {st.session_state.current_blog_title}")
+                # Display the title
+                st.markdown(f"# {st.session_state.current_blog_title}")
             
             # Create tabs for editing and preview
             edit_tab, preview_tab = st.tabs(["✏️ Edit", "👁️ Preview"])
@@ -1433,9 +1430,33 @@ with main_tab:
                     key="blog_editor"
                 )
                 
-                # Update session state when content changes
+                # Update all content states when text area changes
                 st.session_state.edited_content = edited_content
                 st.session_state.current_blog_content = edited_content
+                if 'current_result' in st.session_state and st.session_state.current_result:
+                    if isinstance(st.session_state.current_result, dict):
+                        st.session_state.current_result['content'] = edited_content
+                
+                # Add a save button
+                if st.button("💾 Save Changes", key="save_edit_changes"):
+                    if 'current_blog_id' in st.session_state and st.session_state.current_blog_id:
+                        # Update existing blog
+                        save_blog(
+                            st.session_state.current_blog_title,
+                            st.session_state.edited_content,
+                            st.session_state.current_result.get('metadata', {}) if st.session_state.current_result else {},
+                            blog_id=st.session_state.current_blog_id
+                        )
+                        st.success("Changes saved successfully!")
+                    else:
+                        # Create new blog
+                        blog_id = save_blog(
+                            st.session_state.current_blog_title,
+                            st.session_state.edited_content,
+                            st.session_state.current_result.get('metadata', {}) if st.session_state.current_result else {}
+                        )
+                        st.session_state.current_blog_id = blog_id
+                        st.success("New blog created with your content!")
             
             with preview_tab:
                 st.markdown("### Preview of Formatted Blog Post")

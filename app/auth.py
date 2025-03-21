@@ -176,18 +176,27 @@ class SimpleAuthenticator:
         # Initialize Resend API key from environment or secrets
         try:
             # Try to get API key from environment or Streamlit secrets
-            resend_api_key = os.getenv("RESEND_API_KEY", "")
-            if not resend_api_key and hasattr(st, "secrets"):
-                resend_api_key = st.secrets.get("RESEND_API_KEY", "")
+            self.resend_api_key = os.getenv("RESEND_API_KEY", "").strip()
+            if not self.resend_api_key and hasattr(st, "secrets"):
+                self.resend_api_key = st.secrets.get("RESEND_API_KEY", "").strip()
             
             # Set the API key if available
-            if resend_api_key:
-                resend.api_key = resend_api_key
-                print("Resend API key configured successfully")
+            if self.resend_api_key:
+                print("Debug: Setting Resend API key in __init__")
+                print(f"Debug: API key length: {len(self.resend_api_key)}")
+                print(f"Debug: API key first 4 chars: {self.resend_api_key[:4]}")
+                print(f"Debug: Starts with re_: {self.resend_api_key.startswith('re_')}")
+                
+                # Set the API key in the resend module
+                resend.api_key = self.resend_api_key.strip()
+                print("Debug: Resend API key set successfully")
+                print(f"Debug: Resend module API key first 4 chars: {resend.api_key[:4]}")
             else:
                 print("WARNING: Resend API key not found in environment or secrets")
+                self.resend_api_key = None
         except Exception as e:
             print(f"Error initializing Resend API key: {e}")
+            self.resend_api_key = None
         
         if self.is_deployment:
             # In deployment mode, use SQLite database
@@ -280,9 +289,10 @@ class SimpleAuthenticator:
         if self.is_deployment:
             conn = sqlite3.connect(get_db_path())
             cursor = conn.cursor()
+            
             try:
                 # Check if username already exists
-                cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+                cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
                 if cursor.fetchone():
                     conn.close()
                     return False, "Username already exists"
@@ -1172,31 +1182,36 @@ class SimpleAuthenticator:
     def send_verification_email(self, email, username, token):
         """Send a verification email to the user using Resend."""
         try:
+            # Check if we have a valid API key
+            if not self.resend_api_key:
+                print("Debug: API key is None or empty")
+                st.warning("⚠️ Resend API key not configured. Email verification will not work.")
+                return False
+            
+            # Debug logging for API key
+            print(f"Debug: Using API key from instance variable")
+            print(f"Debug: API key length: {len(self.resend_api_key)}")
+            print(f"Debug: API key first 4 chars: {self.resend_api_key[:4]}")
+            print(f"Debug: Starts with re_: {self.resend_api_key.startswith('re_')}")
+            print(f"Debug: Current resend.api_key first 4 chars: {resend.api_key[:4]}")
+            
             # Get configuration from Streamlit secrets or environment variables
-            api_key = os.getenv("RESEND_API_KEY", "")
-            if not api_key and hasattr(st, "secrets") and "RESEND_API_KEY" in st.secrets:
-                api_key = st.secrets["RESEND_API_KEY"]
-                
             from_email = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
             if hasattr(st, "secrets") and "RESEND_FROM_EMAIL" in st.secrets:
                 from_email = st.secrets["RESEND_FROM_EMAIL"]
-                
+            
             from_name = os.getenv("RESEND_FROM_NAME", "TechMuse")
             if hasattr(st, "secrets") and "RESEND_FROM_NAME" in st.secrets:
                 from_name = st.secrets["RESEND_FROM_NAME"]
             
-            # Determine if we're running on Streamlit Cloud
-            is_cloud = (
-                "STREAMLIT_SHARING" in os.environ or 
-                "STREAMLIT_CLOUD" in os.environ or
-                os.getenv("DEPLOYMENT", "").lower() == "true" or
-                (hasattr(st, "secrets") and st.secrets.get("DEPLOYMENT", "").lower() == "true")
-            )
+            # Check if we're in Streamlit Cloud
+            is_cloud = os.getenv("IS_STREAMLIT_CLOUD", "false").lower() == "true"
+            if hasattr(st, "secrets") and "IS_STREAMLIT_CLOUD" in st.secrets:
+                is_cloud = st.secrets["IS_STREAMLIT_CLOUD"].lower() == "true"
             
-            # Set the base URL based on environment
-            if is_cloud:
-                # For Streamlit Cloud, use the deployment URL
-                base_url = os.getenv("BASE_URL", "https://techmuse.streamlit.app")
+            # Get base URL
+            base_url = os.getenv("BASE_URL", "")
+            if not base_url:
                 if hasattr(st, "secrets") and "BASE_URL" in st.secrets:
                     base_url = st.secrets["BASE_URL"]
             else:
@@ -1212,13 +1227,6 @@ class SimpleAuthenticator:
             if not is_cloud:
                 st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
             
-            # Set Resend API key
-            if not api_key:
-                st.warning("⚠️ Resend API key not configured. Email verification will not work.")
-                return False
-                
-            resend.api_key = api_key
-            
             # Email content
             html_content = f"""
             <html>
@@ -1233,65 +1241,40 @@ class SimpleAuthenticator:
                         <a href="{verification_url}" style="display: inline-block; background-color: #4361EE; color: white; text-decoration: none; padding: 10px 20px; border-radius: 5px; font-weight: bold;">Verify Email Address</a>
                     </p>
                     <p>Or copy and paste this URL into your browser:</p>
-                    <p style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; word-break: break-all;">{verification_url}</p>
+                    <p style="background-color: #f8f9fa; padding: 10px; word-break: break-all;">{verification_url}</p>
                     <p>This link will expire in 24 hours.</p>
                     <p>If you did not sign up for TechMuse, please ignore this email.</p>
                 </div>
-                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #666;">
-                    <p>&copy; 2025 TechMuse. All rights reserved.</p>
+                <div style="text-align: center; margin-top: 20px; padding: 20px; background-color: #f8f9fa; color: #666;">
+                    <p> 2024 TechMuse. All rights reserved.</p>
                 </div>
             </body>
             </html>
             """
             
-            # In development/testing mode, Resend only allows sending to verified emails
-            verified_email = os.getenv("VERIFIED_EMAIL", "")
-            if not verified_email and hasattr(st, "secrets"):
-                verified_email = st.secrets.get("VERIFIED_EMAIL", st.secrets.get("email", ""))
+            # Prepare email parameters
+            params = {
+                "from": f"{from_name} <{from_email}>",
+                "to": email,
+                "subject": "Verify your email address",
+                "html": html_content
+            }
             
-            if not verified_email:
-                verified_email = "ctrwillow@gmail.com"  # Fallback default
+            print("Debug: Attempting to send email...")
+            print("Debug: Using resend API key:", resend.api_key[:4])
+            response = resend.Emails.send(params)
+            print(f"Debug: Email sent successfully! Response: {response}")
             
-            # Determine if we should actually send the email
-            should_send_email = is_cloud or (email.lower() == verified_email.lower())
+            return True
             
-            if should_send_email:
-                # Send email using Resend
-                params = {
-                    "from": f"{from_name} <{from_email}>",
-                    "to": email,
-                    "subject": "Verify Your TechMuse Account",
-                    "html": html_content,
-                }
-                
-                print(f"Sending verification email to: {email}")
-                response = resend.Emails.send(params)
-                print(f"Response: {response}")
-                
-                if response and "id" in response:
-                    print(f"Email sent successfully with ID: {response['id']}")
-                    st.success(f"✉️ Verification email sent to {email}. Please check your inbox.")
-                    return True
-                else:
-                    print(f"Failed to send email: {response}")
-                    st.error("Failed to send verification email. Please use the verification link above.")
-                    return False
-            else:
-                # For non-verified emails in testing mode, just show a message
-                print(f"Cannot send to {email} in local mode. Only {verified_email} is allowed.")
-                st.warning(f"⚠️ In testing mode: Emails can only be sent to {verified_email}.")
-                st.info("Please use the verification link above to verify your account.")
-                return True  # Return true so the account creation continues
-                
         except Exception as e:
             print(f"Error in send_verification_email: {str(e)}")
             print(f"Error type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
-            st.error(f"Error sending verification email: {str(e)}")
-            st.info("Please use the verification link above to verify your account.")
+            st.error(f"Failed to send verification email: {str(e)}")
             return False
-
+    
     def _is_bcrypt_hash(self, password_hash):
         """Check if a password hash is in bcrypt format."""
         if isinstance(password_hash, bytes):
@@ -1734,14 +1717,12 @@ def require_auth():
                     elif "@" not in email or "." not in email:
                         st.error("Please enter a valid email address")
                     else:
-                        # Add the new user with verification required
-                        success, message = authenticator.add_user(new_username, new_password, full_name, email, require_verification=True)
+                        # Add the new user
+                        success, message = authenticator.add_user(new_username, new_password, full_name, email)
                         if success:
                             st.success(message)
-                            st.info("Please check your email to verify your account.")
-                            # Switch to login tab
-                            st.session_state.auth_tab = "login"
-                            st.query_params.update(tab="login")
+                            st.info("You can now log in with your new credentials")
+                            st.session_state.show_signup = False
                             st.rerun()
                         else:
                             st.error(message)

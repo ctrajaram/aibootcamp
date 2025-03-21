@@ -1,35 +1,41 @@
-import resend
 import os
-import sys
+import resend
+from dotenv import load_dotenv, find_dotenv
 
-# Set the API key
-api_key = os.getenv("RESEND_API_KEY")
-if not api_key:
-    print("Error: Resend API key not found in environment variables")
-    sys.exit(1)
+print("Starting Resend API test...")
 
+# Find and load .env file
+env_path = find_dotenv()
+print(f"Found .env file at: {env_path}")
+load_dotenv(env_path)
+
+# Get and check API key
+api_key = os.getenv('RESEND_API_KEY', '')
+print(f'Raw API key length: {len(api_key)}')
+print(f'Raw API key first 4 chars: {api_key[:4] if api_key else "NONE"}')
+
+# Strip whitespace
+api_key = api_key.strip()
+print(f'Stripped API key length: {len(api_key)}')
+print(f'Stripped API key first 4 chars: {api_key[:4] if api_key else "NONE"}')
+print(f'Starts with re_: {api_key.startswith("re_")}')
+
+# Set API key in resend module
 resend.api_key = api_key
+print('API key set in resend module')
+print(f'Resend module API key first 4 chars: {resend.api_key[:4] if resend.api_key else "NONE"}')
 
 try:
-    # Send a test email
-    params = {
-        "from": "onboarding@resend.dev",
-        "to": "ctrwillow@gmail.com",
-        "subject": "Test Email from Resend",
-        "html": "<p>This is a test email from Resend.</p>",
-    }
-    
-    print("Sending test email...")
-    response = resend.Emails.send(params)
-    print(f"Response: {response}")
-    
-    if response and "id" in response:
-        print(f"Email sent successfully with ID: {response['id']}")
-    else:
-        print(f"Failed to send email: {response}")
-        
+    # Try to send a test email
+    print("\nAttempting to send test email...")
+    response = resend.Emails.send({
+        'from': 'onboarding@resend.dev',
+        'to': 'ctrwillow@gmail.com',
+        'subject': 'API Key Test',
+        'html': 'Testing API key configuration'
+    })
+    print(f'Success! Response: {response}')
 except Exception as e:
-    print(f"Error: {str(e)}")
-    print(f"Error type: {type(e).__name__}")
-    import traceback
-    traceback.print_exc()
+    print(f'\nError occurred:')
+    print(f'Error type: {type(e).__name__}')
+    print(f'Error message: {str(e)}')

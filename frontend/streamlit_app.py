@@ -1,5 +1,6 @@
 import streamlit as st
 import markdown
+from app.auth import authenticator
 
 def markdown_to_html(md_text, title):
     html_content = markdown.markdown(md_text, extensions=['fenced_code', 'tables'])
@@ -1134,13 +1135,23 @@ with st.sidebar:
             # Force a rerun to redirect to login page
             st.rerun()
             
-        # Add admin page link for admin users
-        from app.auth import authenticator
-        admin_status = authenticator.is_admin(username)
-        if admin_status:
-            if st.button("👑 Admin Dashboard", key="admin_dashboard_button"):
-                st.session_state.show_admin = True
-                st.rerun()
+        # Add admin page link for admin users - use more robust checking
+        try:
+            # Explicit check for admin status with logging
+            is_admin_user = False
+            if username:
+                is_admin_user = authenticator.is_admin(username)
+                print(f"Admin check for {username}: {is_admin_user}")
+                
+            if is_admin_user:
+                st.markdown('<div class="admin-section">', unsafe_allow_html=True)
+                if st.button("👑 Admin Dashboard", key="admin_dashboard_button"):
+                    st.session_state.show_admin = True
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+        except Exception as e:
+            # Log any errors but don't crash
+            print(f"Error checking admin status: {str(e)}")
     
     # Apply compact view styling by default
     st.markdown("""
@@ -1191,7 +1202,15 @@ with st.sidebar:
 # Check if we should show the admin page - add double verification for admin status
 if "show_admin" in st.session_state and st.session_state.show_admin:
     # Additional security check to ensure only admins can view this page
-    if authenticator.is_admin(username):
+    is_admin_user = False
+    try:
+        if username:
+            is_admin_user = authenticator.is_admin(username)
+            print(f"Admin dashboard access check for {username}: {is_admin_user}")
+    except Exception as e:
+        print(f"Error checking admin access: {str(e)}")
+        
+    if is_admin_user:
         authenticator.show_admin_page()
         # Add a back button
         if st.button("← Back to App", key="back_to_app_button"):
@@ -1659,7 +1678,7 @@ with chat_tab:
                 use_container_width=True,
                 type="primary" if is_selected else "secondary"
             ):
-                set_agent(agent)
+                st.session_state.selected_agent = agent
         
         st.markdown("</div>", unsafe_allow_html=True)
         

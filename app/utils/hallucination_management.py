@@ -55,42 +55,27 @@ class HallucinationManagement:
         self.level = level
         self.model = model
     
-    def process_content(self, 
-                       query: str, 
-                       content: str, 
-                       web_search_results: str, 
-                       sources: List[str],
-                       callback: Optional[Callable[[str], None]] = None,
-                       with_details: bool = False) -> Dict[str, Any]:
+    def process_content(self, query: str, content: str, web_search_results: str, sources: List[str], 
+                        callback: Optional[Callable[[str], None]] = None) -> Dict[str, Any]:
         """
-        Process content through the complete hallucination management pipeline.
+        Process content through hallucination management pipeline.
         
         Args:
-            query: Original query that prompted the content
+            query: The original query
             content: Content to process
-            web_search_results: Web search results for reference
+            web_search_results: Web search results for context
             sources: List of source URLs
             callback: Optional callback for progress updates
-            with_details: If True, include detailed evaluation data in results
             
         Returns:
-            Dict containing processed content and metadata
+            Dictionary with processed content and metadata
         """
         if callback:
             callback("Processing content with full hallucination management pipeline...")
+            
+        print("Processing content with full hallucination management pipeline...")
         
-        # Initial evaluation
-        if callback:
-            callback("Evaluating response for query: " + query[:50] + "...")
-        
-        initial_evaluation = self.hallucination_checker.evaluate_response(
-            query, content, web_search_results, sources
-        )
-        
-        initial_score = initial_evaluation.get("faithfulness_score", 0)
-        problematic_claims = initial_evaluation.get("problematic_claims", [])
-        
-        # Verify and potentially improve the content
+        # Verify content against sources
         verification_result = self.content_verification.verify_content(
             query=query,
             response=content,
@@ -99,51 +84,122 @@ class HallucinationManagement:
             callback=callback
         )
         
-        # Extract key results
-        is_verified = verification_result.get("verification_passed", False)
-        improved_content = verification_result.get("final_content", content)
-        final_score = verification_result.get("final_score", initial_score)
-        improvement_performed = verification_result.get("improvement_performed", False)
-        iterations = verification_result.get("iterations", 0)
+        # Format the verification results for UI display
+        hallucination_metrics = self.format_verification_results(verification_result)
         
-        # Add verification metadata if requested
-        final_content = improved_content
-        if is_verified and improved_content != content:
-            # Only add verification metadata if content was actually improved and verified
-            final_content = self.content_verification.add_verification_metadata(
-                improved_content, verification_result
-            )
+        # Add verification badge to content if it was improved
+        improved_content = verification_result["final_content"]
         
-        # Prepare result dictionary
+        if verification_result["verification_passed"]:
+            score = round(verification_result["final_score"], 2)
+            improved_content += f"\n\n---\n*Content [VERIFIED] ({score*100}% factual accuracy)"
+            
+            if verification_result["improvement_performed"]:
+                improved_content += " [Auto-improved]*"
+            else:
+                improved_content += "*"
+        
+        # Return the result with all metadata
         result = {
-            "initial_content": content,
-            "improved_content": improved_content,  # Make sure we're storing the actual improved content
-            "final_content": final_content,
-            "initial_score": initial_score,
-            "final_score": final_score,
-            "verification_passed": is_verified,
-            "problematic_claims": problematic_claims,
-            "iterations": iterations,
-            "improved": improvement_performed
+            "original_content": content,
+            "processed_content": improved_content,
+            "verification_passed": verification_result["verification_passed"],
+            "verification_result": verification_result,
+            "hallucination_metrics": hallucination_metrics
         }
         
-        # Include detailed data if requested
-        if with_details:
-            result["initial_evaluation"] = initial_evaluation
-            result["verification_result"] = verification_result
-            
-            # Create improvement report if available
-            if hasattr(self.feedback_loop, 'generate_improvement_report') and improvement_performed:
-                result["improvement_report"] = self.feedback_loop.generate_improvement_report({
-                    "initial_score": initial_score,
-                    "final_score": final_score,
-                    "iterations": iterations,
-                    "status": "Passed" if is_verified else "Failed",
-                    "verification_passed": is_verified,
-                    "metrics": self.feedback_loop.get_iteration_metrics()
-                })
-        
         return result
+    
+    def format_verification_results(self, verification_result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Format verification results for display in the UI.
+        
+        Args:
+            verification_result: The verification result dictionary
+            
+        Returns:
+            Formatted metrics suitable for UI display
+        """
+        initial_score = verification_result.get("initial_score", 0)
+        final_score = verification_result.get("final_score", 0)
+        improvement = 0
+        
+        if initial_score > 0:
+            improvement = ((final_score - initial_score) / initial_score) * 100
+        elif final_score > 0:
+            improvement = 100
+            
+        # Format metrics for UI display
+        score_color = "red"
+        if final_score >= 0.9:
+            score_color = "green"
+        elif final_score >= 0.7:
+            score_color = "orange"
+        
+        # Prepare hallucination metrics for UI
+        metrics = {
+            "summary": {
+                "initial_score": round(initial_score, 2),
+                "final_score": round(final_score, 2),
+                "improvement": round(improvement, 1),
+                "score_color": score_color,
+                "iterations": verification_result.get("iterations", 0),
+                "status": verification_result.get("status", "Unknown"),
+                "verification_passed": verification_result.get("verification_passed", False)
+            },
+            "detailed_metrics": verification_result.get("metrics", []),
+            "problematic_claims": verification_result.get("final_evaluation", {}).get("problematic_claims", [])
+        }
+        
+        # Add a simple HTML representation for easy UI integration
+        html_representation = f"""
+        <div class="hallucination-metrics">
+            <h3>Content Verification Results</h3>
+            <div class="metrics-summary">
+                <div class="metric">
+                    <span class="label">Initial Score:</span>
+                    <span class="value">{metrics['summary']['initial_score']:.2f}</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Final Score:</span>
+                    <span class="value" style="color: {score_color};">{metrics['summary']['final_score']:.2f}</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Improvement:</span>
+                    <span class="value">{metrics['summary']['improvement']:.1f}%</span>
+                </div>
+                <div class="metric">
+                    <span class="label">Status:</span>
+                    <span class="value">{metrics['summary']['status']}</span>
+                </div>
+            </div>
+        """
+        
+        # Add problematic claims section if any exist
+        if metrics['problematic_claims']:
+            html_representation += """
+            <div class="problematic-claims">
+                <h4>Detected Issues:</h4>
+                <ul>
+            """
+            
+            for claim in metrics['problematic_claims'][:5]:  # Show top 5 claims
+                html_representation += f"""
+                <li>
+                    <div class="claim">{claim.get('text', '')}</div>
+                    <div class="correction"><strong>Correction:</strong> {claim.get('correction', 'No correction available')}</div>
+                </li>
+                """
+                
+            html_representation += """
+                </ul>
+            </div>
+            """
+            
+        html_representation += "</div>"
+        metrics['html'] = html_representation
+        
+        return metrics
     
     def evaluate_only(self, 
                      query: str, 
@@ -195,12 +251,12 @@ def example_usage():
     
     # Process content
     result = hallucination_mgmt.process_content(
-        query, response, web_search_results, sources, progress_update, with_details=True
+        query, response, web_search_results, sources, progress_update
     )
     
     # Use the verified content
-    verified_content = result["final_content"]
-    print(f"Verified content (score: {result['final_score']:.2f}):")
+    verified_content = result["processed_content"]
+    print(f"Verified content (score: {result['verification_result']['final_score']:.2f}):")
     print(verified_content)
     
 if __name__ == "__main__":

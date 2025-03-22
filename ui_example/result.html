@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hallucination Metrics Display</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #3498db;
+            margin-top: 30px;
+        }
+        .content-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .content-box {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            padding: 15px;
+            white-space: pre-wrap;
+            background-color: #fafafa;
+        }
+        .metrics-panel {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .metrics-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .metric-card {
+            flex: 1;
+            min-width: 120px;
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .metric-label {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .good { color: #28a745; }
+        .warning { color: #fd7e14; }
+        .danger { color: #dc3545; }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            background-color: #e9ecef;
+        }
+        .status-passed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-failed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .problematic-claims {
+            margin-top: 20px;
+        }
+        .claim-item {
+            background-color: white;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .claim-text {
+            color: #dc3545;
+            font-weight: 500;
+            margin-bottom: 10px;
+            border-left: 3px solid #dc3545;
+            padding-left: 10px;
+        }
+        .correction-text {
+            color: #28a745;
+            border-left: 3px solid #28a745;
+            padding-left: 10px;
+        }
+        .chart-container {
+            height: 200px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hallucination Detection Results</h1>
+        
+        <div class="content-wrapper">
+            <h2>Original Content</h2>
+            <div class="content-box" id="original-content">
+Loading original content...
+            </div>
+            
+            <h2>Processed Content</h2>
+            <div class="content-box" id="processed-content">
+Loading processed content...
+            </div>
+            
+            <div class="metrics-panel">
+                <h2>Verification Metrics</h2>
+                
+                <div class="metrics-summary">
+                    <div class="metric-card">
+                        <div class="metric-label">Initial Score</div>
+                        <div class="metric-value" id="initial-score">0.00</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Final Score</div>
+                        <div class="metric-value" id="final-score">0.00</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Improvement</div>
+                        <div class="metric-value" id="improvement">0.0%</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Iterations</div>
+                        <div class="metric-value" id="iterations">0</div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin: 15px 0;">
+                    <div class="status-badge" id="status-badge">Pending verification</div>
+                </div>
+                
+                <div class="problematic-claims" id="problematic-claims">
+                    <h3>Detected Issues</h3>
+                    <div id="claims-container">Loading issues...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // This would normally load data from your backend API
+        async function loadVerificationResults() {
+            // In a real app, you would fetch this from your backend
+            // For demo purposes, we'll use sample data
+            const sampleData = {"original_content": "\nDocker and virtual machines (VMs) are both technologies used for containerization and virtualization.\n\nDocker was invented by Solomon Hykes in 2010 at dotCloud, a PaaS company. Docker containers are much more lightweight because they share the host OS kernel and don't need a full operating system for each container. Docker containers typically start in microseconds, while VMs can take minutes.\n\nVirtual machines were first developed by IBM in 1972 as a way to partition mainframe computers. Each VM includes a full operating system with its own kernel, which leads to greater isolation but higher resource usage. VMs require a hypervisor like VMware ESXi or Microsoft's Hyper-V Division.\n\nDocker containers are not secure for multi-tenant environments because they can access the full Linux kernel memory, while VMs provide complete isolation with memory protection. Docker also uses patented \"BiTreeFS\" technology for its filesystem which improves efficiency by 75% over traditional filesystems.\n\nWhen choosing between Docker and VMs, Docker is always faster and more resource-efficient, but VMs provide better compatibility with legacy software like COBOL applications.\n", "processed_content": "\nDocker and virtual machines (VMs) are both technologies used for containerization and virtualization.\n\nDocker was created by Solomon Hykes in 2013 and released as open-source software. Docker containers are more lightweight because they share the host OS kernel and don't require a full operating system for each container. Containers use namespaces and cgroups to isolate processes, making them generally more resource-efficient than virtual machines for many workloads.\n\nVirtual machines use hypervisors like VMware ESXi, Microsoft Hyper-V, or KVM to create and run virtual machines. Each VM includes its own operating system, which leads to greater isolation but higher resource usage.\n\nWhen choosing between Docker and VMs, Docker is always faster and more resource-efficient, but VMs provide better compatibility with legacy software like COBOL applications.\n\n\n---\n*Content [VERIFIED] (100.0% factual accuracy) [Auto-improved]*", "hallucination_metrics": {"summary": {"initial_score": 0, "final_score": 1.0, "improvement": 100, "score_color": "green", "iterations": 1, "status": "Unknown", "verification_passed": true}, "detailed_metrics": [{"iteration": 0, "score": 0.4, "problematic_claims": 5, "assessment": "MAJOR ISSUES: Multiple unsupported claims detected."}, {"iteration": 1, "score": 1.0, "problematic_claims": 0, "assessment": "VERIFIED: Information appears accurate."}], "problematic_claims": [], "html": "\n        <div class=\"hallucination-metrics\">\n            <h3>Content Verification Results</h3>\n            <div class=\"metrics-summary\">\n                <div class=\"metric\">\n                    <span class=\"label\">Initial Score:</span>\n                    <span class=\"value\">0.00</span>\n                </div>\n                <div class=\"metric\">\n                    <span class=\"label\">Final Score:</span>\n                    <span class=\"value\" style=\"color: green;\">1.00</span>\n                </div>\n                <div class=\"metric\">\n                    <span class=\"label\">Improvement:</span>\n                    <span class=\"value\">100.0%</span>\n                </div>\n                <div class=\"metric\">\n                    <span class=\"label\">Status:</span>\n                    <span class=\"value\">Unknown</span>\n                </div>\n            </div>\n        </div>"}
+                "original_content": "Docker and virtual machines (VMs) are both technologies used for containerization and virtualization.\n\nDocker was invented by Solomon Hykes in 2010 at dotCloud, a PaaS company. Docker containers are much more lightweight because they share the host OS kernel and don't need a full operating system for each container. Docker containers typically start in microseconds, while VMs can take minutes.\n\nVirtual machines were first developed by IBM in 1972 as a way to partition mainframe computers. Each VM includes a full operating system with its own kernel, which leads to greater isolation but higher resource usage. VMs require a hypervisor like VMware ESXi or Microsoft's Hyper-V Division.\n\nDocker containers are not secure for multi-tenant environments because they can access the full Linux kernel memory, while VMs provide complete isolation with memory protection. Docker also uses patented \"BiTreeFS\" technology for its filesystem which improves efficiency by 75% over traditional filesystems.\n\nWhen choosing between Docker and VMs, Docker is always faster and more resource-efficient, but VMs provide better compatibility with legacy software like COBOL applications.",
+                "processed_content": "Docker and virtual machines (VMs) are both technologies used for containerization and virtualization.\n\nDocker was created by Solomon Hykes in 2013 and released as open-source software. Docker containers are more lightweight because they share the host system's kernel and isolate application processes from each other, eliminating the need for a full operating system for each container. Docker containers typically start in seconds, while virtual machines can take minutes to boot.\n\nVirtual machines were pioneered by IBM in the 1960s and became widely used by the 1970s. Each VM includes a full operating system with its own kernel, which leads to greater isolation but higher resource usage. VMs require a hypervisor like VMware ESXi, Microsoft Hyper-V, or KVM.\n\nContainers have less isolation than VMs because they share the host kernel, making them potentially less secure for multi-tenant environments. However, Docker has added security features like namespaces and cgroups to improve isolation. Docker uses overlay filesystem technology, which is efficient for many workloads. Docker is generally more resource-efficient than VMs, but VMs can provide better performance for certain workloads, especially those that benefit from direct hardware access.\n\nWhen choosing between Docker and VMs, Docker is always faster and more resource-efficient, but VMs provide better compatibility with legacy software like COBOL applications.\n\n---\n*Content [VERIFIED] (90% factual accuracy) [Auto-improved]*",
+                "hallucination_metrics": {
+                    "summary": {
+                        "initial_score": 0.40,
+                        "final_score": 0.90,
+                        "improvement": 50.0,
+                        "score_color": "green",
+                        "iterations": 1,
+                        "status": "Successfully improved",
+                        "verification_passed": true
+                    },
+                    "problematic_claims": [
+                        {
+                            "text": "Docker was invented by Solomon Hykes in 2010 at dotCloud, a PaaS company.",
+                            "reason": "Not supported by sources",
+                            "correction": "Docker was created by Solomon Hykes in 2013 at dotCloud, a PaaS company."
+                        },
+                        {
+                            "text": "Docker containers typically start in microseconds.",
+                            "reason": "Not supported by sources",
+                            "correction": "Docker containers typically start in seconds, not microseconds."
+                        },
+                        {
+                            "text": "Docker containers can access the full Linux kernel memory.",
+                            "reason": "Not supported by sources",
+                            "correction": "The statement is incorrect. Docker containers share the host system's kernel but do not have unrestricted access to the full Linux kernel memory. They are isolated from each other using security features like namespaces and cgroups."
+                        },
+                        {
+                            "text": "Docker uses patented 'BiTreeFS' technology for its filesystem which improves efficiency by 75% over traditional filesystems.",
+                            "reason": "Not supported by sources",
+                            "correction": "The statement is incorrect. Docker does not use patented 'BiTreeFS' technology. Instead, Docker uses overlay filesystem technology."
+                        }
+                    ]
+                }
+            
+            
+            // Update the UI with the data
+            updateUI(sampleData);
+        }
+        
+        function updateUI(data) {
+            // Update content areas
+            document.getElementById('original-content').textContent = data.original_content;
+            document.getElementById('processed-content').textContent = data.processed_content;
+            
+            // Update metrics
+            const metrics = data.hallucination_metrics.summary;
+            document.getElementById('initial-score').textContent = metrics.initial_score.toFixed(2);
+            
+            const finalScoreElement = document.getElementById('final-score');
+            finalScoreElement.textContent = metrics.final_score.toFixed(2);
+            if (metrics.final_score >= 0.9) {
+                finalScoreElement.className = 'metric-value good';
+            } else if (metrics.final_score >= 0.7) {
+                finalScoreElement.className = 'metric-value warning';
+            } else {
+                finalScoreElement.className = 'metric-value danger';
+            }
+            
+            document.getElementById('improvement').textContent = metrics.improvement.toFixed(1) + '%';
+            document.getElementById('iterations').textContent = metrics.iterations;
+            
+            // Update status badge
+            const statusBadge = document.getElementById('status-badge');
+            statusBadge.textContent = metrics.status;
+            if (metrics.verification_passed) {
+                statusBadge.className = 'status-badge status-passed';
+            } else {
+                statusBadge.className = 'status-badge status-failed';
+            }
+            
+            // Update problematic claims
+            const claimsContainer = document.getElementById('claims-container');
+            if (data.hallucination_metrics.problematic_claims && data.hallucination_metrics.problematic_claims.length > 0) {
+                let claimsHTML = '';
+                data.hallucination_metrics.problematic_claims.forEach(claim => {
+                    claimsHTML += `
+                        <div class="claim-item">
+                            <div class="claim-text">${claim.text}</div>
+                            <div class="correction-text"><strong>Correction:</strong> ${claim.correction}</div>
+                        </div>
+                    `;
+                });
+                claimsContainer.innerHTML = claimsHTML;
+            } else {
+                claimsContainer.innerHTML = '<p>No issues detected.</p>';
+            }
+        }
+        
+        // Load the data when the page loads
+        window.addEventListener('DOMContentLoaded', loadVerificationResults);
+    </script>
+</body>
+</html>

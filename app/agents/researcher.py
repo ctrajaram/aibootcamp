@@ -11,6 +11,10 @@ import json
 import hashlib
 import time
 from pathlib import Path
+import traceback  # Import traceback for error reporting
+
+# Import hallucination management system
+from app.utils.hallucination_management import HallucinationManagement
 
 # Remove authentication imports
 # import streamlit_authenticator as stauth
@@ -330,6 +334,70 @@ def research_topic(topic: ResearchTopic, progress_callback=None, use_cache=True)
             
         print(f"Extracted content type: {type(result_content)}")
         
+        # Verify content for hallucinations
+        if progress_callback:
+            progress_callback(0.85, "Verifying content accuracy...")
+        
+        try:
+            # Initialize hallucination management system with GPT-4o
+            # Using advanced level for more thorough verification
+            hallucination_mgmt = HallucinationManagement(level="advanced", model="gpt-4o")
+            
+            # Generate search results for factual verification
+            search_query = f"{topic.title} {' '.join(topic.keywords)}"
+            web_search_results = search_web(search_query)
+            
+            # Default sources if we don't have specific ones
+            sources = []
+            
+            # Process the content to detect and fix hallucinations
+            def verification_callback(message):
+                if progress_callback:
+                    progress_callback(0.9, f"Verification: {message}")
+                    
+            verification_result = hallucination_mgmt.process_content(
+                query=topic.title,
+                content=result_content,
+                web_search_results=web_search_results,
+                sources=sources,
+                callback=verification_callback
+            )
+            
+            # Use the verified content
+            verified_content = verification_result["processed_content"]
+            hallucination_metrics = verification_result["hallucination_metrics"]
+            
+            # Check if we need an additional verification pass for higher quality
+            final_score = hallucination_metrics['summary']['final_score']
+            if final_score < 0.9 and progress_callback:
+                progress_callback(0.92, "Performing additional verification...")
+                
+                # Try another round of verification with the already improved content
+                second_verification = hallucination_mgmt.process_content(
+                    query=topic.title,
+                    content=verified_content,  # Use the already improved content
+                    web_search_results=web_search_results,
+                    sources=sources,
+                    callback=verification_callback
+                )
+                
+                # If the second verification improved the score, use its results
+                if second_verification["hallucination_metrics"]["summary"]["final_score"] > final_score:
+                    verified_content = second_verification["processed_content"]
+                    hallucination_metrics = second_verification["hallucination_metrics"]
+            
+            # Log verification metrics
+            print(f"Content verification completed: Initial score: {hallucination_metrics['summary']['initial_score']:.2f}, Final score: {hallucination_metrics['summary']['final_score']:.2f}")
+            
+            # Use the verified content as our final content
+            result_content = verified_content
+            
+        except Exception as verif_error:
+            # If verification fails, log the error but continue with original content
+            print(f"Warning: Content verification failed: {str(verif_error)}")
+            traceback.print_exc()
+            hallucination_metrics = None
+        
         # This may not be reached due to the callbacks in crew_setup.py,
         # but we include it as a fallback
         if progress_callback:
@@ -351,6 +419,10 @@ def research_topic(topic: ResearchTopic, progress_callback=None, use_cache=True)
                 "keywords": topic.keywords
             }
         }
+        
+        # Add hallucination metrics if available
+        if 'hallucination_metrics' in locals() and hallucination_metrics:
+            result['hallucination_metrics'] = hallucination_metrics
         
         # Save to cache if enabled
         if use_cache:

@@ -172,21 +172,37 @@ def create_editor_agent():
 def create_technical_reviewer():
     """
     Creates a technical reviewer agent specialized in ensuring accuracy.
+    Integrates HallucinationChecker to verify factual claims and reduce hallucinations.
     """
+    # Import HallucinationChecker here to avoid circular imports
+    from app.agents.hallucination_checker import HallucinationChecker
+    
+    # Initialize the hallucination checker
+    hallucination_checker = HallucinationChecker(model="gpt-4o")
+    
     return Agent(
         role='Technical Reviewer',
-        goal='Ensure technical accuracy and best practices in content',
+        goal='Ensure technical accuracy and best practices in content while detecting and reducing hallucinations',
         backstory="""You are a senior software engineer and technical architect with 
         experience across multiple domains. You have a deep understanding of programming 
         languages, frameworks, and system design. You can spot technical inaccuracies, 
-        outdated practices, and security issues. You provide constructive feedback to 
-        improve the technical quality of content.""",
+        outdated practices, and security issues. You use advanced hallucination detection 
+        to verify factual claims against reliable sources. You provide constructive feedback 
+        to improve the technical quality of content and ensure its factual accuracy.""",
         verbose=True,
         allow_delegation=False,
         llm_config={
             "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.2
-        }
+        },
+        tools=[
+            {
+                "name": "verify_factual_accuracy",
+                "description": "Verifies the factual accuracy of technical content using hallucination detection",
+                "function": lambda query, response, search_results, sources: 
+                    hallucination_checker.evaluate_response(query, response, search_results, sources)
+            }
+        ]
     )
 
 def create_seo_specialist():

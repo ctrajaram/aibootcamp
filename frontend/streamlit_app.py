@@ -1136,7 +1136,8 @@ with st.sidebar:
             
         # Add admin page link for admin users
         from app.auth import authenticator
-        if authenticator.is_admin(username):
+        admin_status = authenticator.is_admin(username)
+        if admin_status:
             if st.button("👑 Admin Dashboard", key="admin_dashboard_button"):
                 st.session_state.show_admin = True
                 st.rerun()
@@ -1187,15 +1188,20 @@ with st.sidebar:
     </style>
     """, unsafe_allow_html=True)
 
-# Check if we should show the admin page
+# Check if we should show the admin page - add double verification for admin status
 if "show_admin" in st.session_state and st.session_state.show_admin:
-    authenticator.show_admin_page()
-    # Add a back button
-    if st.button("← Back to App", key="back_to_app_button"):
+    # Additional security check to ensure only admins can view this page
+    if authenticator.is_admin(username):
+        authenticator.show_admin_page()
+        # Add a back button
+        if st.button("← Back to App", key="back_to_app_button"):
+            st.session_state.show_admin = False
+            st.rerun()
+    else:
+        # Reset the state and show an unauthorized message
         st.session_state.show_admin = False
+        st.error("Unauthorized: You do not have permission to access the admin dashboard.")
         st.rerun()
-    st.stop()
-
 # Input section in a card-like container
 # Removing the card container div
 # st.markdown('<div class="card-container">', unsafe_allow_html=True)

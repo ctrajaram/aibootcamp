@@ -1462,6 +1462,52 @@ with main_tab:
                 st.markdown("### Preview of Formatted Blog Post")
                 st.code(st.session_state.edited_content, language="markdown")
             
+            # Display hallucination verification metrics if available
+            if 'current_result' in st.session_state and st.session_state.current_result:
+                if 'hallucination_metrics' in st.session_state.current_result:
+                    st.markdown("---")
+                    metrics = st.session_state.current_result['hallucination_metrics']['summary']
+                    
+                    # Create a clean metrics display
+                    st.markdown("### Content Verification Metrics")
+                    
+                    # Create metrics in columns
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric(
+                            "Initial Faithfulness", 
+                            f"{metrics['initial_score']:.2f}"
+                        )
+                    
+                    with col2:
+                        # Use delta to show improvement
+                        st.metric(
+                            "Final Faithfulness", 
+                            f"{metrics['final_score']:.2f}",
+                            f"+{metrics['improvement']:.1f}%" if metrics['improvement'] > 0 else "0%"
+                        )
+                    
+                    with col3:
+                        # Display verification status with appropriate color
+                        score = metrics['final_score']
+                        if score >= 0.9:
+                            st.success("✓ VERIFIED")
+                        elif score >= 0.7:
+                            st.warning("⚠ PARTIALLY VERIFIED")
+                        else:
+                            st.error("✗ NOT VERIFIED")
+                    
+                    # Add expandable section with problematic claims if any
+                    if 'problematic_claims' in st.session_state.current_result['hallucination_metrics']:
+                        claims = st.session_state.current_result['hallucination_metrics']['problematic_claims']
+                        if claims:
+                            with st.expander("View Detected Hallucinations"):
+                                for i, claim in enumerate(claims):
+                                    st.markdown(f"**Issue {i+1}:** {claim.get('text', '')}")
+                                    st.markdown(f"**Correction:** {claim.get('correction', '')}")
+                                    st.markdown("---")
+            
             # Center the download buttons
             st.markdown('<div class="center-content">', unsafe_allow_html=True)
             

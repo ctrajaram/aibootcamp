@@ -377,6 +377,55 @@ GROUNDING RESULTS (as JSON):"""
             "grounding_results": grounding_results
         }
     
+    def _generate_correction(self, statement: str, context: str) -> str:
+        """
+        Generate a factual correction for a hallucinated statement based on available context.
+        
+        Args:
+            statement: The hallucinated statement to correct
+            context: The context information to use for correction
+            
+        Returns:
+            A factual correction or clarification based on the available context
+        """
+        try:
+            system_prompt = """You are an expert fact-checker tasked with correcting hallucinated statements in AI-generated content.
+            
+Given a potentially hallucinated statement and reference context:
+1. Identify what facts in the statement are incorrect or unsupported
+2. Provide a factual correction based ONLY on the information in the context
+3. If no relevant information is found in the context, clearly state that
+
+Your correction must:
+- Be concise and focused only on addressing the factual inaccuracies
+- Only use facts explicitly stated in the context
+- Never introduce new information not found in the context
+- Clearly indicate when information is unavailable in the context"""
+
+            user_prompt = f"""POTENTIALLY HALLUCINATED STATEMENT:
+{statement}
+
+REFERENCE CONTEXT:
+{context}
+
+Provide a factual correction:"""
+
+            completion = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0
+            )
+            
+            correction = completion.choices[0].message.content.strip()
+            return correction
+            
+        except Exception as e:
+            print(f"Error generating correction: {str(e)}")
+            return "Unable to generate correction due to processing error. Please verify with authoritative sources."
+    
     def evaluate_response(self, 
                          query: str, 
                          response: str, 
@@ -396,8 +445,8 @@ GROUNDING RESULTS (as JSON):"""
         """
         print(f"Evaluating response for query: {query[:50]}...")
         
-        # Generate cache key to avoid redundant evaluations
-        cache_key = hashlib.md5(f"{query[:100]}|{response[:100]}|{sources}".encode()).hexdigest()
+        # Generate cache key to avoid redundant evaluations - use full text hash
+        cache_key = hashlib.md5((query + response + str(sources)).encode()).hexdigest()
         if cache_key in self.evaluation_cache:
             print("Using cached evaluation result")
             return self.evaluation_cache[cache_key]
@@ -505,7 +554,7 @@ SOURCE CREDIBILITY:
 Evaluate the response against the context. Identify any factual claims in the response that aren't supported by the context.
 Return your evaluation in JSON format."""
 
-            # Call OpenAI for evaluation
+            # Call OpenAI model for evaluation
             print(f"Calling {self.model} for hallucination evaluation...")
             completion = self.client.chat.completions.create(
                 model=self.model,
@@ -513,77 +562,87 @@ Return your evaluation in JSON format."""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0
+                temperature=0,
+                response_format={"type": "json_object"}  # Request JSON format explicitly
             )
             
-            # Extract the evaluation response
             evaluation_text = completion.choices[0].message.content
             print(f"Received evaluation response ({len(evaluation_text)} chars)")
             
-            # Parse JSON from the response
+            # Process evaluation result - handle JSON parsing more robustly
             try:
-                # Extract JSON from the response text
+                evaluation_result = json.loads(evaluation_text)
+            except json.JSONDecodeError as e:
+                print(f"ERROR in hallucination evaluation: {str(e)}")
+                
+                # Try to extract JSON from the text if it's not properly formatted
                 json_match = re.search(r'\{.*\}', evaluation_text, re.DOTALL)
                 if json_match:
-                    json_str = json_match.group(0)
-                    evaluation = json.loads(json_str)
+                    try:
+                        evaluation_result = json.loads(json_match.group(0))
+                    except:
+                        # Fall back to default values if JSON can't be parsed
+                        evaluation_result = {
+                            "faithfulness": claims_faithfulness,
+                            "relevance": 0.7,
+                            "has_hallucination": len(ungrounded_claims) > 0,
+                            "confidence": "Medium",
+                            "explanation": "Failed to parse evaluation response",
+                            "hallucinated_statements": ungrounded_claims
+                        }
                 else:
-                    # Fallback if no JSON is found
-                    print("No JSON found in evaluation response, using claim-based evaluation")
-                    evaluation = {
+                    # Use default values if no JSON object found
+                    evaluation_result = {
                         "faithfulness": claims_faithfulness,
-                        "relevance": 0.7,  # Default relevance
+                        "relevance": 0.7,
                         "has_hallucination": len(ungrounded_claims) > 0,
                         "confidence": "Medium",
-                        "explanation": f"Evaluation based on claim grounding: {len(grounded_claims)} of {len(claims)} claims were grounded in the context.",
+                        "explanation": "Failed to extract evaluation results",
                         "hallucinated_statements": ungrounded_claims
                     }
-            except json.JSONDecodeError as e:
-                print(f"Failed to parse JSON from response: {e}")
-                evaluation = {
-                    "faithfulness": claims_faithfulness,
-                    "relevance": 0.7,
-                    "has_hallucination": len(ungrounded_claims) > 0,
-                    "confidence": "Medium",
-                    "explanation": f"JSON parsing error. Evaluation based on claim grounding: {len(grounded_claims)} of {len(claims)} claims were grounded.",
-                    "hallucinated_statements": ungrounded_claims
-                }
             
-            # Generate appropriate warning message
-            if evaluation.get("has_hallucination", True):
-                faithfulness = evaluation.get("faithfulness", 0)
-                if faithfulness < 0.3:
-                    warning = "WARNING: HIGH RISK: Significant hallucinations detected. Verify information independently."
-                elif faithfulness < 0.7:
-                    warning = "WARNING: CAUTION: Some information may not be supported by sources."
-                else:
-                    warning = "WARNING: MINOR: Minor discrepancies detected, but most information is supported."
+            # Add grounding information
+            evaluation_result["grounding"] = grounding_info
+            evaluation_result["source_credibility"] = source_credibility
+            
+            # Add explicit problematic claims with corrections
+            problematic_claims = []
+            for statement in evaluation_result.get("hallucinated_statements", []):
+                correction = self._generate_correction(statement, context)
+                problematic_claims.append({
+                    "text": statement,
+                    "reason": "Not supported by sources",
+                    "correction": correction
+                })
+            
+            # Add faithfulness score based on our quantitative analysis
+            if "faithfulness" not in evaluation_result:
+                evaluation_result["faithfulness_score"] = claims_faithfulness
             else:
-                warning = "VERIFIED: Response appears to be well-grounded in the provided sources."
+                evaluation_result["faithfulness_score"] = evaluation_result.pop("faithfulness")
+                
+            evaluation_result["problematic_claims"] = problematic_claims
             
-            # Prepare final evaluation result
-            result = {
-                "faithfulness": round(evaluation.get("faithfulness", 0), 2),
-                "relevance": round(evaluation.get("relevance", 0), 2),
-                "has_hallucination": evaluation.get("has_hallucination", True),
-                "confidence": evaluation.get("confidence", "Medium"),
-                "explanation": evaluation.get("explanation", "No explanation provided"),
-                "hallucinated_statements": evaluation.get("hallucinated_statements", []),
-                "warning": warning,
-                "sources": sources,
-                "grounding": {
-                    "grounded_claims": grounded_claims,
-                    "ungrounded_claims": ungrounded_claims,
-                    "total_claims": len(claims),
-                },
-                "source_credibility": source_credibility
-            }
+            # Add overall assessment
+            assessment = "VERIFIED: Information appears accurate."
+            warning_level = "None"
+            
+            if evaluation_result.get("has_hallucination", False):
+                if len(problematic_claims) > 3:
+                    assessment = "MAJOR ISSUES: Multiple unsupported claims detected."
+                    warning_level = "High"
+                else:
+                    assessment = "WARNING: CAUTION: Some information may not be supported by sources."
+                    warning_level = "Medium"
+                    
+            evaluation_result["assessment"] = assessment
+            evaluation_result["warning_level"] = warning_level
             
             # Cache the result
-            self.evaluation_cache[cache_key] = result
+            self.evaluation_cache[cache_key] = evaluation_result
             
-            print(f"Hallucination assessment: {warning}")
-            return result
+            print(f"Hallucination assessment: {assessment}")
+            return evaluation_result
             
         except Exception as e:
             import traceback
@@ -629,7 +688,7 @@ Return your evaluation in JSON format."""
             
             # Add scores
             result += f"**Evaluation Scores:**\n"
-            result += f"- Faithfulness: {evaluation.get('faithfulness', 0):.2f}/1.00 ({evaluation.get('confidence', 'Low')} confidence)\n"
+            result += f"- Faithfulness: {evaluation.get('faithfulness_score', 0):.2f}/1.00 ({evaluation.get('confidence', 'Low')} confidence)\n"
             result += f"- Relevance: {evaluation.get('relevance', 0):.2f}/1.00\n"
             
             # Add grounding statistics if available

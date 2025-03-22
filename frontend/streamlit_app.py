@@ -1342,7 +1342,7 @@ with main_tab:
                             </div>
                         </div>
                         """
-                        loading_message = "Finalizing and polishing content..."
+                        loading_message = "Finalizing, polishing content, and eliminating hallucinations..."
                     
                     # Update the progress steps container
                     progress_steps_container.markdown(step_html, unsafe_allow_html=True)

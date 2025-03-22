@@ -80,45 +80,22 @@ def create_writer_agent() -> Agent:
 
 def create_editor_agent() -> Agent:
     """
-    Create a specialized agent for editing and polishing content.
+    Create a specialized agent for comprehensive editing and quality assurance.
     """
     return Agent(
         role='Technical Editor and Quality Assurance',
-        goal='Ensure technical accuracy, clarity, and polish in the final content',
-        backstory="""You are a meticulous technical editor with an eye for detail 
-        and accuracy. With your background in both technical subjects and professional 
-        editing, you excel at improving content clarity, fixing technical inaccuracies, 
-        and ensuring code examples work correctly. You also check for consistent formatting, 
-        logical flow, and appropriate technical depth for the target audience.""",
+        goal='Ensure technical accuracy, clarity, and comprehensive quality in the final content',
+        backstory="""You are a meticulous technical editor with exceptional skills in both content improvement 
+        and quality assurance. With your background in technical subjects, professional editing, and QA processes, 
+        you excel at improving content clarity, fixing technical inaccuracies, ensuring code examples work correctly, 
+        and performing comprehensive quality checks. You verify that content meets the highest standards of accuracy, 
+        clarity, and completeness while maintaining appropriate technical depth for the target audience.""",
         verbose=True,
         allow_delegation=False,
-        # Configure the language model
+        # Configure the language model with optimized settings
         llm_config={
             "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
             "temperature": 0.3,  # Lower temperature for precise editing
-            "request_timeout": 120
-        }
-    )
-
-def create_qa_agent() -> Agent:
-    """
-    Create a specialized agent for final quality assurance.
-    """
-    return Agent(
-        role='Technical Quality Assurance Specialist',
-        goal='Perform comprehensive quality checks on technical content',
-        backstory="""You are a meticulous technical quality assurance specialist with 
-        extensive experience in technical content evaluation. You have a keen eye for 
-        technical inaccuracies, logical inconsistencies, and content gaps. You're known 
-        for your ability to identify potential issues that others might miss and ensure 
-        that technical content meets the highest standards of accuracy, clarity, and 
-        completeness. You also verify that code examples are correct and follow best practices.""",
-        verbose=True,
-        allow_delegation=False,
-        # Configure the language model
-        llm_config={
-            "config_list": [{"model": "gpt-4o", "api_key": openai_api_key}],
-            "temperature": 0.2,  # Very low temperature for critical evaluation
             "request_timeout": 120
         }
     )
@@ -172,7 +149,6 @@ def create_blog_crew(topic_title: str, keywords: list, depth: str, progress_call
     outline_creator = create_outline_agent()
     writer = create_writer_agent()
     editor = create_editor_agent()
-    qa_specialist = create_qa_agent()
     
     # Perform initial web searches to gather information
     search_results = []
@@ -230,10 +206,8 @@ def create_blog_crew(topic_title: str, keywords: list, depth: str, progress_call
                         agent_role = "Outline Strategist"
                     elif "write" in desc.lower():
                         agent_role = "Content Writer"
-                    elif "edit" in desc.lower():
-                        agent_role = "Editor"
-                    elif "quality" in desc.lower() or "qa" in desc.lower():
-                        agent_role = "Quality Assurance"
+                    elif "edit" in desc.lower() or "quality" in desc.lower() or "qa" in desc.lower():
+                        agent_role = "Editor and Quality Assurance"
                     
                     if agent_role:
                         print(f"Inferred agent role from task description: {agent_role}")
@@ -248,7 +222,7 @@ def create_blog_crew(topic_title: str, keywords: list, depth: str, progress_call
                     if current_progress < 0.2:
                         progress_callback(0.5, "Research complete. Creating outline...")
                     elif current_progress > 0.8:
-                        progress_callback(0.95, "QA complete. Finalizing blog post...")
+                        progress_callback(0.95, "Editing and QA complete. Finalizing blog post...")
                     else:
                         progress_callback(current_progress, current_message)
                 return
@@ -265,15 +239,11 @@ def create_blog_crew(topic_title: str, keywords: list, depth: str, progress_call
             elif "Writer" in agent_role or "Content Writer" in agent_role:
                 if progress_callback:
                     print("Updating progress: Writing complete")
-                    progress_callback(0.75, "Draft complete. Editing content...")
+                    progress_callback(0.75, "Draft complete. Editing and QA in progress...")
             elif "Editor" in agent_role:
                 if progress_callback:
-                    print("Updating progress: Editing complete")
-                    progress_callback(0.85, "Editing complete. Performing final QA...")
-            elif "Quality" in agent_role:
-                if progress_callback:
-                    print("Updating progress: QA complete")
-                    progress_callback(0.95, "QA complete. Finalizing blog post...")
+                    print("Updating progress: Editing and QA complete")
+                    progress_callback(0.95, "Editing and QA complete. Finalizing blog post...")
         except Exception as e:
             # If there's an error in the callback, log it but don't fail the process
             print(f"Error in task callback: {str(e)}")
@@ -366,7 +336,7 @@ def create_blog_crew(topic_title: str, keywords: list, depth: str, progress_call
     )
     
     editing_task = Task(
-        description=f"""Review and improve the technical blog post about "{topic_title}".
+        description=f"""Review, improve, and perform comprehensive quality assurance on this technical blog post about "{topic_title}".
         
         The blog post is targeted at a {depth} level audience.
         Focus on these keywords: {keywords_str}
@@ -375,35 +345,15 @@ def create_blog_crew(topic_title: str, keywords: list, depth: str, progress_call
         
         {{writing_task.output}}
         
-        Your job is to:
-        1. Ensure technical accuracy of all information
-        2. Improve clarity and readability
-        3. Check that code examples are correct and well-explained
-        4. Verify that the content is appropriate for a {depth} level audience
-        5. Add any missing important information
-        6. Ensure consistent formatting and style
-        7. Polish the introduction and conclusion
+        Your job is to perform both thorough editing AND comprehensive quality assurance:
         
-        Provide the edited version of the blog post in markdown format.
-        """,
-        expected_output="An edited, technically accurate blog post.",
-        agent=editor,
-        context=[writing_task],
-        # Use on_task_complete instead of callback
-        on_task_complete=task_callback
-    )
-    
-    qa_task = Task(
-        description=f"""Perform a comprehensive quality assessment of this technical blog post about "{topic_title}".
+        EDITING:
+        1. Improve clarity and readability
+        2. Ensure consistent formatting and style
+        3. Polish the introduction and conclusion
+        4. Add any missing important information
         
-        The blog post is targeted at a {depth} level audience.
-        Focus on these keywords: {keywords_str}
-        
-        Here is the edited blog post:
-        
-        {{editing_task.output}}
-        
-        Your job is to perform a thorough quality check:
+        QUALITY ASSURANCE:
         1. Verify all technical information for accuracy
         2. Ensure all code examples are correct, efficient, and follow best practices
         3. Check that the content addresses all the important aspects of the topic
@@ -414,23 +364,22 @@ def create_blog_crew(topic_title: str, keywords: list, depth: str, progress_call
         8. Ensure the content is well-structured with a clear flow
         
         If you find any issues, fix them directly and provide the final, polished version of the blog post.
-        If no issues are found, you can make minor improvements and return the final version.
         
-        Provide the final, quality-assured blog post in markdown format.
+        Provide the final, fully edited and quality-assured blog post in markdown format.
         """,
         expected_output="A final, quality-assured blog post ready for publication.",
-        agent=qa_specialist,
-        context=[editing_task],
+        agent=editor,
+        context=[writing_task],
         # Use on_task_complete instead of callback
         on_task_complete=task_callback
     )
     
     # Create the crew with the agents and tasks
     crew = Crew(
-        agents=[researcher, outline_creator, writer, editor, qa_specialist],
-        tasks=[research_task, outline_task, writing_task, editing_task, qa_task],
-        verbose=True,  # Changed from 2 to True
+        agents=[researcher, outline_creator, writer, editor],
+        tasks=[research_task, outline_task, writing_task, editing_task],
+        verbose=True,
         process=Process.sequential  # Execute tasks in sequence
     )
     
-    return crew 
+    return crew

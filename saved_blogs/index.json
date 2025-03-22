@@ -3358,6 +3358,84 @@
         ]
       },
       "preview": "```markdown\n# Understanding Kubernetes: The Container Orchestration Powerhouse\n\n## 1. Introductions\n\nIn the cloud era, application deployment has undergone a profound transformation, largely due to th..."
+    },
+    {
+      "id": "d5f3606b-506d-4c3d-ad77-1e0a6ebc2179",
+      "title": "Docker",
+      "created_at": "2025-03-22T10:35:29.580265",
+      "metadata": {
+        "topic": "Docker",
+        "depth": "intermediate",
+        "keywords": [
+          "commands"
+        ]
+      },
+      "preview": "```markdown\n# Mastering Docker Commands for Intermediate Users\n\n## Introduction\nDocker has revolutionized the way we think about application development and deployment, enabling flexible, scalable, an..."
+    },
+    {
+      "id": "fd7c90c3-a756-4a04-a260-e8963a34f30a",
+      "title": "Docker",
+      "created_at": "2025-03-22T10:35:37.694081",
+      "metadata": {
+        "topic": "Docker",
+        "depth": "intermediate",
+        "keywords": [
+          "commands"
+        ]
+      },
+      "preview": "```markdown\n# Mastering Docker Commands for Intermediate Users\n\n## Introduction\nDocker has revolutionized the way we think about application development and deployment, enabling flexible, scalable, an..."
+    },
+    {
+      "id": "5be96838-dfea-4455-a2c2-45b02b8281c9",
+      "title": "Docker",
+      "created_at": "2025-03-22T10:35:43.952800",
+      "metadata": {
+        "topic": "Docker",
+        "depth": "intermediate",
+        "keywords": [
+          "commands"
+        ]
+      },
+      "preview": "```markdown\n# Mastering Docker Commands for Intermediate Users\n\n## Introduction\nDocker has revolutionized the way we think about application development and deployment, enabling flexible, scalable, an..."
+    },
+    {
+      "id": "f77233b3-9aee-471d-81e0-035bcc545a88",
+      "title": "jenkins",
+      "created_at": "2025-03-22T10:39:52.812393",
+      "metadata": {
+        "topic": "jenkins",
+        "depth": "intermediate",
+        "keywords": [
+          "groovy"
+        ]
+      },
+      "preview": "```markdown\n# Leveraging Groovy in Jenkins for Enhanced CI/CD Workflows\n\n## Introduction\nIn modern software development, automation is paramount as it enables teams to enhance efficiency and accelerat..."
+    },
+    {
+      "id": "cd0fc1cd-ea5f-4020-9a01-09086ded99a1",
+      "title": "jenkins",
+      "created_at": "2025-03-22T10:40:56.930913",
+      "metadata": {
+        "topic": "jenkins",
+        "depth": "intermediate",
+        "keywords": [
+          "groovy"
+        ]
+      },
+      "preview": "```markdown\n# Leveraging Groovy in Jenkins for Enhanced CI/CD Workflows\n\n## Introduction\nIn modern software development, automation is paramount as it enables teams to enhance efficiency and accelerat..."
+    },
+    {
+      "id": "d95a5a6c-574f-4add-82ed-3c2eb6033676",
+      "title": "jenkins",
+      "created_at": "2025-03-22T10:41:12.100237",
+      "metadata": {
+        "topic": "jenkins",
+        "depth": "intermediate",
+        "keywords": [
+          "groovy"
+        ]
+      },
+      "preview": "```markdown\n# Leveraging Groovy in Jenkins for Enhanced CI/CD Workflows\n\n## Introduction\nIn modern software development, automation is paramount as it enables teams to enhance efficiency and accelerat..."
     }
   ]
 }

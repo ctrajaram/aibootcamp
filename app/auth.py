@@ -280,6 +280,7 @@ class SimpleAuthenticator:
         if self.is_deployment:
             conn = sqlite3.connect(get_db_path())
             cursor = conn.cursor()
+            
             try:
                 # Check if username already exists
                 cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
@@ -386,6 +387,7 @@ class SimpleAuthenticator:
         if self.is_deployment:
             conn = sqlite3.connect(get_db_path())
             cursor = conn.cursor()
+            
             try:
                 # Find the user with this token
                 cursor.execute(
@@ -522,9 +524,9 @@ class SimpleAuthenticator:
             else:
                 # Find user by email
                 username = None
-                for user, details in self.credentials.items():
-                    if details.get("email") == email and not details.get("is_verified", False):
-                        username = user
+                for existing_username, user_data in self.credentials.items():
+                    if user_data.get("email") == email and not user_data.get("is_verified", False):
+                        username = existing_username
                         break
                 
                 if not username:
@@ -1172,19 +1174,17 @@ class SimpleAuthenticator:
     def send_verification_email(self, email, username, token):
         """Send a verification email to the user using Resend."""
         try:
+            # Debug: Print environment variables
+            print("Environment variables:")
+            print(f"VERIFIED_EMAIL_FROM: {os.getenv('VERIFIED_EMAIL_FROM', 'Not set')}")
+            print(f"RESEND_API_KEY: {'Set' if os.getenv('RESEND_API_KEY') else 'Not set'}")
+            
             # Get configuration from Streamlit secrets or environment variables
             api_key = os.getenv("RESEND_API_KEY", "")
             if not api_key and hasattr(st, "secrets") and "RESEND_API_KEY" in st.secrets:
                 api_key = st.secrets["RESEND_API_KEY"]
-                
-            from_email = os.getenv("RESEND_FROM_EMAIL", "onboarding@resend.dev")
-            if hasattr(st, "secrets") and "RESEND_FROM_EMAIL" in st.secrets:
-                from_email = st.secrets["RESEND_FROM_EMAIL"]
-                
-            from_name = os.getenv("RESEND_FROM_NAME", "TechMuse")
-            if hasattr(st, "secrets") and "RESEND_FROM_NAME" in st.secrets:
-                from_name = st.secrets["RESEND_FROM_NAME"]
             
+            # Create verification URL
             # Determine if we're running on Streamlit Cloud
             is_cloud = (
                 "STREAMLIT_SHARING" in os.environ or 
@@ -1244,44 +1244,49 @@ class SimpleAuthenticator:
             </html>
             """
             
-            # In development/testing mode, Resend only allows sending to verified emails
-            verified_email = os.getenv("VERIFIED_EMAIL", "")
-            if not verified_email and hasattr(st, "secrets"):
-                verified_email = st.secrets.get("VERIFIED_EMAIL", st.secrets.get("email", ""))
+            # Get the verified domain email or use Resend's onboarding email
+            from_email = os.getenv("VERIFIED_EMAIL_FROM")
             
-            if not verified_email:
-                verified_email = "ctrwillow@gmail.com"  # Fallback default
+            # Debug info
+            print(f"From email from env: {from_email}")
             
-            # Determine if we should actually send the email
-            should_send_email = is_cloud or (email.lower() == verified_email.lower())
+            # Check Streamlit secrets if available
+            if not from_email and hasattr(st, "secrets") and "VERIFIED_EMAIL_FROM" in st.secrets:
+                from_email = st.secrets["VERIFIED_EMAIL_FROM"]
+                print(f"From email from secrets: {from_email}")
             
-            if should_send_email:
-                # Send email using Resend
-                params = {
-                    "from": f"{from_name} <{from_email}>",
-                    "to": email,
-                    "subject": "Verify Your TechMuse Account",
-                    "html": html_content,
-                }
-                
-                print(f"Sending verification email to: {email}")
-                response = resend.Emails.send(params)
-                print(f"Response: {response}")
-                
-                if response and "id" in response:
-                    print(f"Email sent successfully with ID: {response['id']}")
-                    st.success(f"✉️ Verification email sent to {email}. Please check your inbox.")
-                    return True
-                else:
-                    print(f"Failed to send email: {response}")
-                    st.error("Failed to send verification email. Please use the verification link above.")
-                    return False
+            # If still not set, use Resend's onboarding email
+            if not from_email:
+                from_email = "onboarding@resend.dev"
+                print(f"Using default onboarding email: {from_email}")
+            
+            from_name = os.getenv("RESEND_FROM_NAME", "TechMuse")
+            if hasattr(st, "secrets") and "RESEND_FROM_NAME" in st.secrets:
+                from_name = st.secrets["RESEND_FROM_NAME"]
+            
+            # Send email to the user's actual email address
+            params = {
+                "from": f"{from_name} <{from_email}>",
+                "to": email,  # Send to the user's actual email
+                "subject": "Verify Your TechMuse Account",
+                "html": html_content,
+            }
+            
+            print(f"Sending verification email to: {email}")
+            print(f"From email: {from_email}")
+            response = resend.Emails.send(params)
+            print(f"Response: {response}")
+            
+            if response and "id" in response:
+                print(f"Email sent successfully with ID: {response['id']}")
+                st.success(f"✉️ Verification email sent to {email}. Please check your inbox.")
+                return True
             else:
-                # For non-verified emails in testing mode, just show a message
-                print(f"Cannot send to {email} in local mode. Only {verified_email} is allowed.")
-                st.warning(f"⚠️ In testing mode: Emails can only be sent to {verified_email}.")
-                st.info("Please use the verification link above to verify your account.")
-                return True  # Return true so the account creation continues
+                print(f"Failed to send email: {response}")
+                st.error("Failed to send verification email. Please try again later.")
+                # Still show the verification link in case email fails
+                st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
+                return False
                 
         except Exception as e:
             print(f"Error in send_verification_email: {str(e)}")
@@ -1289,7 +1294,8 @@ class SimpleAuthenticator:
             import traceback
             traceback.print_exc()
             st.error(f"Error sending verification email: {str(e)}")
-            st.info("Please use the verification link above to verify your account.")
+            # Still show the verification link in case of error
+            st.info(f"📧 **Verification Link**: [Click here to verify your email]({verification_url})")
             return False
 
     def _is_bcrypt_hash(self, password_hash):
@@ -1734,14 +1740,12 @@ def require_auth():
                     elif "@" not in email or "." not in email:
                         st.error("Please enter a valid email address")
                     else:
-                        # Add the new user with verification required
-                        success, message = authenticator.add_user(new_username, new_password, full_name, email, require_verification=True)
+                        # Add the new user
+                        success, message = authenticator.add_user(new_username, new_password, full_name, email)
                         if success:
                             st.success(message)
-                            st.info("Please check your email to verify your account.")
-                            # Switch to login tab
-                            st.session_state.auth_tab = "login"
-                            st.query_params.update(tab="login")
+                            st.info("You can now log in with your new credentials")
+                            st.session_state.show_signup = False
                             st.rerun()
                         else:
                             st.error(message)

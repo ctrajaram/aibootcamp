@@ -114,7 +114,7 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             name TEXT NOT NULL,
-            email TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
             created_at TEXT NOT NULL,
             last_login TEXT,
             is_verified INTEGER DEFAULT 0,
@@ -288,6 +288,12 @@ class SimpleAuthenticator:
                     conn.close()
                     return False, "Username already exists"
                 
+                # Check if email already exists
+                cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+                if cursor.fetchone():
+                    conn.close()
+                    return False, "Email address already registered. Please use a different email."
+                
                 # Generate verification token if required
                 verification_token = None
                 verification_expiry = None
@@ -347,6 +353,11 @@ class SimpleAuthenticator:
             # For development mode
             if username in self.credentials:
                 return False, "Username already exists"
+            
+            # Check if email already exists
+            for existing_username, user_data in self.credentials.items():
+                if user_data.get("email") == email:
+                    return False, "Email address already registered. Please use a different email."
             
             # Add the new user
             self.credentials[username] = {
@@ -1333,7 +1344,7 @@ class SimpleAuthenticator:
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 name TEXT NOT NULL,
-                email TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
                 created_at TEXT NOT NULL,
                 last_login TEXT,
                 is_verified INTEGER DEFAULT 0,

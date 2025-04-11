@@ -131,7 +131,14 @@ def init_db():
             # Create admin user
             admin_id = str(uuid.uuid4())
             now = datetime.now().isoformat()
-            hashed_password = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
+            
+            # Use consistent hashing: bcrypt if available, else SHA256
+            if bcrypt:
+                print(f"Using bcrypt for admin password hashing")
+                hashed_password = bcrypt.hashpw(ADMIN_PASSWORD.encode(), bcrypt.gensalt())
+            else:
+                print(f"Bcrypt not available, using SHA256 for admin password hashing")
+                hashed_password = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()
             
             print(f"Creating admin user: {ADMIN_USERNAME}")
             cursor.execute('''

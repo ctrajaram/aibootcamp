@@ -294,12 +294,11 @@ class SimpleAuthenticator:
                     conn.close()
                     return False, "Username already exists"
                 
-                # Temporarily disabled for testing purposes
                 # Check if email already exists
-                # cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
-                # if cursor.fetchone():
-                #     conn.close()
-                #     return False, "Email address already registered. Please use a different email."
+                cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+                if cursor.fetchone():
+                    conn.close()
+                    return False, "Email address already registered. Please use a different email."
                 
                 # Generate verification token if required
                 verification_token = None
@@ -361,11 +360,10 @@ class SimpleAuthenticator:
             if username in self.credentials:
                 return False, "Username already exists"
             
-            # Temporarily disabled for testing purposes
             # Check if email already exists
-            # for existing_username, user_data in self.credentials.items():
-            #     if user_data.get("email") == email:
-            #         return False, "Email address already registered. Please use a different email."
+            for existing_username, user_data in self.credentials.items():
+                if user_data.get("email") == email:
+                    return False, "Email address already registered. Please use a different email."
             
             # Add the new user
             self.credentials[username] = {

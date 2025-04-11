@@ -1017,29 +1017,19 @@ class SimpleAuthenticator:
         if not username:
             return False
             
-        if self.is_deployment:
-            # In deployment mode, check the database
-            conn = sqlite3.connect(get_db_path())
-            cursor = conn.cursor()
-            
-            # Get the first user (admin)
-            cursor.execute("SELECT id FROM users ORDER BY id ASC LIMIT 1")
-            first_user = cursor.fetchone()
-            
-            # Get the current user
-            cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
-            current_user = cursor.fetchone()
-            
-            conn.close()
-            
-            if not first_user or not current_user:
-                return False
-            
-            # The first user is admin
-            return current_user[0] == first_user[0]
+        # Get admin credentials from secrets/env
+        admin_username, _ = get_credentials()
         
-        # In local development, admin user is admin
-        return username == "admin" or (self.admin_username and username == self.admin_username)
+        # Check if the current username matches admin username from environment variables
+        if username == admin_username:
+            return True
+            
+        # Additional check for local development
+        if not self.is_deployment:
+            # In local development, also check default admin and class instance admin
+            return username == "admin" or (self.admin_username and username == self.admin_username)
+            
+        return False
     
     def get_all_users(self):
         """Get all users from the database."""

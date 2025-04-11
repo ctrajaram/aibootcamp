@@ -1617,6 +1617,14 @@ with chat_tab:
             "SEO Specialist": "📈"
         }
         
+        # Function to set the selected agent
+        def set_agent(agent_name):
+            st.session_state.selected_agent = agent_name
+            # Reset chat input key to force refresh of the input field
+            st.session_state.chat_input_key += 1
+            # Force a rerun to immediately update the UI
+            st.rerun()
+        
         # Add CSS for custom agent selector buttons
         st.markdown("""
         <style>

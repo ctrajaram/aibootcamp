@@ -287,12 +287,11 @@ class SimpleAuthenticator:
                     conn.close()
                     return False, "Username already exists"
                 
-                # Temporarily disabled for testing purposes
                 # Check if email already exists
-                # cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
-                # if cursor.fetchone():
-                #     conn.close()
-                #     return False, "Email address already registered. Please use a different email."
+                cursor.execute("SELECT id FROM users WHERE email = ?", (email,))
+                if cursor.fetchone():
+                    conn.close()
+                    return False, "Email address already registered. Please use a different email."
                 
                 # Generate verification token if required
                 verification_token = None
@@ -354,11 +353,10 @@ class SimpleAuthenticator:
             if username in self.credentials:
                 return False, "Username already exists"
             
-            # Temporarily disabled for testing purposes
             # Check if email already exists
-            # for existing_username, user_data in self.credentials.items():
-            #     if user_data.get("email") == email:
-            #         return False, "Email address already registered. Please use a different email."
+            for existing_username, user_data in self.credentials.items():
+                if user_data.get("email") == email:
+                    return False, "Email address already registered. Please use a different email."
             
             # Add the new user
             self.credentials[username] = {
@@ -704,38 +702,44 @@ class SimpleAuthenticator:
                 # For debugging
                 print(f"Input password: {password}")
                 
-                if bcrypt and self._is_bcrypt_hash(stored_password):
-                    # Handle bcrypt password
-                    print("Using bcrypt verification")
-                    
-                    # Ensure stored_password is bytes
-                    if isinstance(stored_password, str):
-                        stored_password = stored_password.encode('utf-8')
-                    
-                    # Ensure password is bytes for bcrypt
-                    password_bytes = password.encode('utf-8')
-                    
-                    result = bcrypt.checkpw(password_bytes, stored_password)
-                    print(f"Bcrypt password verification result: {result}")
-                    return result
-                else:
-                    # Handle non-bcrypt password or when bcrypt is not available
-                    print("Using non-bcrypt verification")
-                    hashed_password = self.hash_password(password)
-                    result = stored_password == hashed_password
-                    print(f"Non-bcrypt password verification result: {result}")
-                    print(f"Stored password: {stored_password}")
-                    print(f"Hashed input password: {hashed_password}")
-                    
-                    # If that fails, try direct comparison as fallback
-                    if not result:
-                        print("Trying direct comparison as fallback")
-                        result = password == stored_password
-                        print(f"Direct comparison result: {result}")
-                    
+                if bcrypt:
+                    # Check if it looks like a bcrypt hash (string or bytes)
+                    is_bcrypt_hash = False
+                    stored_password_bytes = None
+                    if isinstance(stored_password, bytes) and stored_password.startswith(b'$2'):
+                        is_bcrypt_hash = True
+                        stored_password_bytes = stored_password
+                    elif isinstance(stored_password, str) and stored_password.startswith('$2'):
+                        is_bcrypt_hash = True
+                        # Encode string hash back to bytes for comparison
+                        stored_password_bytes = stored_password.encode('utf-8')
+
+                    if is_bcrypt_hash:
+                        try:
+                            print("Attempting bcrypt check...")
+                            result = bcrypt.checkpw(password.encode(), stored_password_bytes)
+                            print(f"bcrypt check result: {result}")
+                            return result
+                        except Exception as bcrypt_e:
+                            print(f"bcrypt check failed: {bcrypt_e}")
+                            # Potentially fall through to fallback if bcrypt check fails unexpectedly
+
+                    # Fallback comparison (if not bcrypt or bcrypt check failed)
+                    print("Attempting fallback hash comparison...")
+                    hashed_input_password = self.hash_password(password)
+                    # Ensure consistent comparison (e.g., compare strings if fallback hash is string)
+                    stored_comparison_val = stored_password
+                    input_comparison_val = hashed_input_password
+                    if isinstance(hashed_input_password, bytes) and isinstance(stored_password, str):
+                        input_comparison_val = hashed_input_password.decode('utf-8', 'ignore')
+                    elif isinstance(hashed_input_password, str) and isinstance(stored_password, bytes):
+                         stored_comparison_val = stored_password.decode('utf-8', 'ignore')
+
+                    result = stored_comparison_val == input_comparison_val
+                    print(f"Fallback comparison result: {result}")
                     return result
             except Exception as e:
-                print(f"Error in password verification: {str(e)}")
+                print(f"Password verification failed unexpectedly: {e}")
                 # Fall back to direct comparison if there's an error
                 try:
                     # Try direct comparison as last resort

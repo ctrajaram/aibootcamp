@@ -1,6 +1,17 @@
 # Environment variables
 .env
 .windsurfrules
+# Credentials & Secrets
+auth_credentials.pkl
+
+# Databases
+techmuse.db
+*.db
+*.sqlite*
+
+# Cache
+cache/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -34,7 +45,7 @@ env/
 *.swp
 *.swo
 
-# OS specific
+# Operating System files
 .DS_Store
 Thumbs.db
 
